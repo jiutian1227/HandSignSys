@@ -1,0 +1,47 @@
+import { get, post } from '@/common/request.uts';
+import type { ApiResult } from '@/common/request.uts';
+
+/**
+ * 预测请求参数类型
+ */
+export interface PredictRequest {
+  startTime: string;
+  weight: string;
+  username: string;
+  inputImg: string;
+  conf: string;
+  ai: string;
+  suggestion: string;
+}
+
+/**
+ * 预测返回结果类型
+ */
+export interface PredictResult {
+  label: string;
+  confidence: string;
+  allTime: string;
+  outImg: string;
+}
+
+/**
+ * 模型列表返回类型
+ */
+export interface FileNamesResult {
+  weight_items: Array<{ label: string; value: string }>;
+}
+
+/**
+ * 调用预测接口
+ * @param params 预测参数
+ */
+export function predict(params: PredictRequest) {
+  return post<ApiResult<string>>('/flask/predict', params);
+}
+
+/**
+ * 获取模型列表
+ */
+export function getFileNames() {
+  return get<ApiResult<string>>('/flask/file_names');
+}

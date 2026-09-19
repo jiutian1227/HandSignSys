@@ -1,0 +1,33 @@
+<template>
+  <view class="sign-language-chart-page">
+
+  </view>
+</template>
+
+<script setup lang="uts">
+
+</script>
+
+<style scoped>
+.sign-language-chart-page {
+  width: 100vw; 
+  height: 100vh;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  
+  background-image: url('https://free.picui.cn/free/2026/03/08/69ad31ec9a097.webp');
+  background-size: contain; 
+  background-position: center center; 
+  background-repeat: no-repeat;
+  
+  overflow: hidden; 
+  position: relative; 
+}
+
+::v-deep page {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+</style>

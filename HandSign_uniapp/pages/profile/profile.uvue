@@ -1,0 +1,600 @@
+<template>
+  <view class="profile">
+    <view v-if="loading" class="loading">加载中...</view>
+    <view v-else>
+      <view class="header-card">
+        <view class="user-main-info">
+          <view class="avatar-section">
+            <image class="avatar" :src="userInfo.avatar || defaultAvatar" mode="aspectFill" />
+            <view class="avatar-overlay" @click="showAvatarPopup">
+              <text class="camera-icon">📷</text>
+            </view>
+          </view>
+          <view class="user-info">
+            <text class="username">{{ userInfo.username || '未设置用户名' }}</text>
+            <view class="role-badge">{{ roleText }}</view>
+          </view>
+        </view>
+      </view>
+      <view class="info-card">
+        <view class="card-header">
+          <text class="card-icon">📋</text>
+          <text class="card-title">基本信息</text>
+        </view>
+        <view class="info-grid">
+          <view class="info-item">
+            <view class="info-left">
+              <text class="info-icon">🆔</text>
+              <text class="info-label">用户ID</text>
+            </view>
+            <text class="info-value">{{ userInfo.id || '--' }}</text>
+          </view>
+          <view class="info-item">
+            <view class="info-left">
+              <text class="info-icon">👤</text>
+              <text class="info-label">用户名</text>
+            </view>
+            <text class="info-value">{{ userInfo.username || '--' }}</text>
+          </view>
+          <view class="info-item">
+            <view class="info-left">
+              <text class="info-icon">🎭</text>
+              <text class="info-label">角色</text>
+            </view>
+            <text class="info-value">{{ roleText }}</text>
+          </view>
+          <view class="info-item">
+            <view class="info-left">
+              <text class="info-icon">✍️</text>
+              <text class="info-label">姓名</text>
+            </view>
+            <text class="info-value">{{ userInfo.name || '--' }}</text>
+          </view>
+          <view class="info-item">
+            <view class="info-left">
+              <text class="info-icon">📧</text>
+              <text class="info-label">邮箱</text>
+            </view>
+            <text class="info-value">{{ userInfo.email || '--' }}</text>
+          </view>
+          <view class="info-item">
+            <view class="info-left">
+              <text class="info-icon">📱</text>
+              <text class="info-label">手机号</text>
+            </view>
+            <text class="info-value">{{ userInfo.tel || '--' }}</text>
+          </view>
+          <view class="info-item">
+            <view class="info-left">
+              <text class="info-icon">🚻</text>
+              <text class="info-label">性别</text>
+            </view>
+            <text class="info-value">{{ userInfo.sex || '--' }}</text>
+          </view>
+          <view class="info-item">
+            <view class="info-left">
+              <text class="info-icon">📅</text>
+              <text class="info-label">注册时间</text>
+            </view>
+            <text class="info-value">{{ formatDate(userInfo.time) }}</text>
+          </view>
+        </view>
+      </view>
+      <view class="action-card">
+        <view class="card-header">
+          <text class="card-icon">⚡</text>
+          <text class="card-title">快捷操作</text>
+        </view>
+        <view class="action-grid">
+          <view class="action-item" @click="showEditPopup">
+            <view class="action-icon borrow-icon">✏️</view>
+            <text class="action-text">修改信息</text>
+          </view>
+          <view class="action-item" @click="showAvatarPopup">
+            <view class="action-icon avatar-icon">🖼️</view>
+            <text class="action-text">更换头像</text>
+          </view>
+        </view>
+      </view>
+      <view class="logout-section">
+        <button class="logout-btn" @click="handleLogout">
+          <text class="logout-icon">🚪</text>
+          <text class="logout-text">退出登录</text>
+        </button>
+      </view>
+    </view>
+    <view class="avatar-popup" v-if="showAvatarSelect">
+      <view class="popup-overlay" @click="hideAvatarPopup"></view>
+      <view class="popup-content">
+        <view class="popup-header">
+          <text class="popup-title">选择头像</text>
+          <text class="popup-close" @click="hideAvatarPopup">×</text>
+        </view>
+        <view class="avatar-grid">
+          <view v-for="(avatar, index) in avatarList" :key="index" class="avatar-item" :class="{ selected: selectedAvatar === avatar }" @click="selectAvatar(avatar)">
+            <image class="avatar-image" :src="avatar" mode="aspectFill" />
+          </view>
+        </view>
+        <view class="popup-actions">
+          <button class="action-btn cancel-btn" @click="hideAvatarPopup">取消</button>
+          <button class="action-btn confirm-btn" @click="confirmAvatarChange">确定</button>
+        </view>
+      </view>
+    </view>
+    <view class="edit-popup" v-if="showEditSelect">
+      <view class="popup-overlay" @click="hideEditPopup"></view>
+      <view class="popup-content edit-content">
+        <view class="popup-header">
+          <text class="popup-title">修改个人信息</text>
+          <text class="popup-close" @click="hideEditPopup">×</text>
+        </view>
+        <view class="edit-form">
+          <view class="form-item">
+            <text class="form-label">姓名</text>
+            <input class="form-input" v-model="editForm.name" placeholder="请输入真实姓名" />
+          </view>
+          <view class="form-item">
+            <text class="form-label">性别</text>
+            <radio-group class="sex-radio-group" @change="editForm.sex = $event.detail.value">
+              <view class="sex-grid">
+                <label class="sex-radio-item">
+                  <radio value="男" :checked="editForm.sex === '男'">男</radio>
+                </label>
+                <label class="sex-radio-item">
+                  <radio value="女" :checked="editForm.sex === '女'">女</radio>
+                </label>
+              </view>
+            </radio-group>
+          </view>
+          <view class="form-item">
+            <text class="form-label">邮箱</text>
+            <input class="form-input" v-model="editForm.email" type="email" placeholder="请输入邮箱" />
+          </view>
+          <view class="form-item">
+            <text class="form-label">手机号</text>
+            <input class="form-input" v-model="editForm.tel" type="number" placeholder="请输入手机号" />
+          </view>
+          <view class="form-item" v-if="userInfo.role === 'admin'">
+            <text class="form-label">密码（选填）</text>
+            <input class="form-input" v-model="editForm.password" type="password" placeholder="不修改请留空" />
+          </view>
+        </view>
+        <view class="popup-actions">
+          <button class="action-btn cancel-btn" @click="hideEditPopup">取消</button>
+          <button class="action-btn confirm-btn" @click="confirmEditInfo">保存修改</button>
+        </view>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { updateUser, getUserByUsername } from '@/api/user.uts'
+import {  logout,isLogin, getUserInfo,setUserInfo } from '@/utils/userInfo.uts'
+import type { User } from '@/api/user.uts'
+
+const loading = ref(true)
+const defaultAvatar = "https://img.tuxiangyan.com/uploads/allimg/230530/1_05300UH241a.jpg"
+const userInfo = ref<User>({})
+const showAvatarSelect = ref(false)
+const selectedAvatar = ref('')
+const avatarList = ref([
+  defaultAvatar,
+  'https://img.tuxiangyan.com/uploads/allimg/230622/1_0622163TEQ4.jpg',
+  'https://tse1-mm.cn.bing.net/th/id/OIP-C.jtxvfcOpgNXyOTcmPwkGYAAAAA?w=194&h=194&c=7&r=0&o=7&cb=iwp1&dpr=1.3&pid=1.7&rm=3',
+  'https://img.tuxiangyan.com/uploads/allimg/220101/1_01011952032O4.jpg',
+  'https://img.tuxiangyan.com/uploads/allimg/220101/1_010119515532F.jpg',
+  'https://img.52tiemo.com/uploads/allimg/210526/3-210526154Z0.jpg',
+  'https://img.52tiemo.com/uploads/allimg/210526/3-210526154Z0-50.jpg',
+  'https://img.52tiemo.com/uploads/allimg/210526/3-210526154U9.jpg',
+  'https://img.52tiemo.com/uploads/allimg/210526/3-210526154U8.jpg',
+  'https://img.52tiemo.com/uploads/allimg/210526/3-210526154U7.jpg',
+  'https://img.52tiemo.com/uploads/allimg/210526/3-210526154U1-50.jpg',
+  'https://img.tuxiangyan.com/zb_users/upload/2023/02/202302091675904133424061.jpg',
+  'https://img.tuxiangyan.com/zb_users/upload/2023/02/202302091675904133140322.jpg',
+  'https://img.tuxiangyan.com/zb_users/upload/2023/02/202302091675904134274530.jpg',
+  'https://img.tuxiangyan.com/zb_users/upload/2023/02/202302091675904134814455.jpg',
+  'https://img.tuxiangyan.com/zb_users/upload/2023/02/202302091675904134287530.jpg',
+  'https://img.tuxiangyan.com/zb_users/upload/2023/02/202302091675904134748531.jpg',
+  'https://img.tuxiangyan.com/zb_users/upload/2023/02/202302091675904134407256.jpg',
+  'https://img.tuxiangyan.com/zb_users/upload/2023/02/202302091675904134149776.jpg',
+  'https://img.tuxiangyan.com/zb_users/upload/2023/02/202302091675904134262080.jpg',
+  'https://img.tuxiangyan.com/zb_users/upload/2023/02/202302091675904136317214.jpg',
+  'https://img.tuxiangyan.com/zb_users/upload/2023/02/202302091675904136409043.jpg'
+])
+const showEditSelect = ref(false)
+const editForm = ref<User>({})
+
+const roleText = computed(() => {
+  const map: Record<string, string> = {
+    admin: '管理员',
+    user: '普通用户'
+  }
+  return map[userInfo.value.role || ''] || '未知角色'
+})
+
+const formatDate = (s?: string) => {
+  if (!s) return '--'
+  return new Date(s).toLocaleDateString('zh-CN')
+}
+
+async function loadUser() {
+  try {
+    if (isLogin()) {
+      const localUser = getUserInfo()
+      userInfo.value = localUser
+      if (localUser.username) {
+        const freshUser = await getUserByUsername(localUser.username)
+        userInfo.value = freshUser
+      }
+      initEditForm()
+    } else {
+      uni.showToast({ title: '请先登录', icon: 'none' })
+      uni.navigateTo({ url: '/pages/login/login' })
+    }
+  } catch (e) {
+    uni.showToast({ title: '加载信息失败', icon: 'none' })
+  } finally {
+    loading.value = false
+  }
+}
+
+function initEditForm() {
+  editForm.value = {
+    id: userInfo.value.id,
+    username: userInfo.value.username,
+    name: userInfo.value.name || '',
+    sex: userInfo.value.sex || '男',
+    email: userInfo.value.email || '',
+    tel: userInfo.value.tel || '',
+    role: userInfo.value.role
+  }
+}
+
+const showEditPopup = () => {
+  initEditForm()
+  showEditSelect.value = true
+}
+
+const hideEditPopup = () => {
+  showEditSelect.value = false
+}
+
+const confirmEditInfo = async () => {
+  if (editForm.value.tel && !/^1[3-9]\d{9}$/.test(editForm.value.tel)) {
+    uni.showToast({ title: '手机号格式错误', icon: 'none' })
+    return
+  }
+  if (editForm.value.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.value.email)) {
+    uni.showToast({ title: '邮箱格式错误', icon: 'none' })
+    return
+  }
+  await updateUser(editForm.value)
+  userInfo.value = { ...userInfo.value, ...editForm.value }
+  editForm.value.password = ''
+  uni.showToast({ title: '修改成功', icon: 'success' })
+  hideEditPopup()
+}
+
+const showAvatarPopup = () => {
+  showAvatarSelect.value = true
+  selectedAvatar.value = userInfo.value.avatar || ''
+}
+
+const hideAvatarPopup = () => {
+  showAvatarSelect.value = false
+}
+
+const selectAvatar = (url: string) => {
+  selectedAvatar.value = url
+}
+
+const confirmAvatarChange = async () => {
+  if (!selectedAvatar.value) {
+    uni.showToast({ title: '请选择头像', icon: 'none' })
+    return
+  }
+  userInfo.value.avatar = selectedAvatar.value
+  await updateUser({ id: userInfo.value.id, avatar: selectedAvatar.value })
+  uni.showToast({ title: '头像更新成功', icon: 'success' })
+  hideAvatarPopup()
+}
+
+const handleLogout = () => {
+  uni.showModal({
+    title: '提示',
+    content: '确定退出登录？',
+    success: res => {
+      if (res.confirm) {
+		setUserInfo(null)
+		logout()
+      }
+    }
+  })
+}
+
+onMounted(() => {
+  loadUser()
+})
+</script>
+
+<style scoped>
+.profile{
+	padding:30rpx;
+	width: 100%;
+	position: relative;
+	overflow: hidden;
+	background-image: url('https://free.picui.cn/free/2026/03/08/69ad28f585a3f.png');
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+	min-height:100vh
+}
+.loading{text-align:center;padding:50rpx 0;color:#fff;font-size:32rpx;opacity:0.9}
+
+/* 头部卡片 - 添加透明度 */
+.header-card{
+  background:rgba(255,255,255,0.85);
+  backdrop-filter:blur(20rpx);
+  border-radius:30rpx;
+  padding:40rpx;
+  margin-bottom:30rpx;
+  box-shadow:0 20rpx 60rpx rgba(0,0,0,0.1);
+  opacity:0.9; /* 整体卡片透明度 */
+}
+
+.user-main-info{display:flex;align-items:center;margin-bottom:40rpx}
+.avatar-section{position:relative;margin-right:30rpx}
+.avatar{
+  width:140rpx;
+  height:140rpx;
+  border-radius:50%;
+  border:6rpx solid #e8f4ff;
+  box-shadow:0 10rpx 30rpx rgba(86,119,252,0.2);
+  opacity:0.95; /* 头像透明度 */
+}
+.avatar-overlay{
+  position:absolute;
+  bottom:0;
+  right:0;
+  background:#5677fc;
+  width:50rpx;
+  height:50rpx;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:4rpx solid white;
+  opacity:0.9; /* 头像操作按钮透明度 */
+}
+.camera-icon{font-size:24rpx}
+.user-info{flex:1}
+.username{
+  display:block;
+  font-size:40rpx;
+  font-weight:bold;
+  color:#333;
+  margin-bottom:15rpx;
+  opacity:0.95; /* 用户名文字透明度 */
+}
+.role-badge{
+  display:inline-block;
+  background:linear-gradient(135deg,#5677fc,#5c6bc0);
+  color:white;
+  padding:8rpx 20rpx;
+  border-radius:20rpx;
+  font-size:24rpx;
+  margin-bottom:15rpx;
+  opacity:0.9; /* 角色标签透明度 */
+}
+
+/* 信息卡片和操作卡片 - 添加透明度 */
+.info-card,.action-card{
+  background:rgba(255,255,255,0.85);
+  backdrop-filter:blur(20rpx);
+  border-radius:30rpx;
+  padding:40rpx;
+  margin-bottom:30rpx;
+  box-shadow:0 20rpx 60rpx rgba(0,0,0,0.1);
+  opacity:0.9; /* 整体卡片透明度 */
+}
+
+.card-header{display:flex;align-items:center;margin-bottom:40rpx}
+.card-icon{
+  font-size:32rpx;
+  margin-right:15rpx;
+  opacity:0.9; /* 卡片图标透明度 */
+}
+.card-title{
+  font-size:34rpx;
+  font-weight:bold;
+  color:#333;
+  opacity:0.95; /* 卡片标题透明度 */
+}
+.info-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:30rpx}
+.info-item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:20rpx 0;
+  border-bottom:2rpx solid #f5f5f5;
+  opacity:0.95; /* 信息项透明度 */
+}
+.info-item:nth-last-child(-n+2){border-bottom:none}
+.info-left{display:flex;align-items:center;gap:20rpx}
+.info-icon{
+  font-size:28rpx;
+  opacity:0.9; /* 信息项图标透明度 */
+}
+.info-label{
+  font-size:28rpx;
+  color:#666;
+  opacity:0.9; /* 信息项标签透明度 */
+}
+.info-value{
+  font-size:28rpx;
+  color:#333;
+  font-weight:500;
+  opacity:0.95; /* 信息项值透明度 */
+}
+.action-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:30rpx}
+.action-item{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:40rpx 20rpx;
+  background:#f8f9ff;
+  border-radius:20rpx;
+  opacity:0.95; /* 操作项透明度 */
+}
+.action-item:active{transform:scale(0.95);background:#e8f4ff}
+.action-icon{
+  font-size:50rpx;
+  margin-bottom:20rpx;
+  opacity:0.9; /* 操作项图标透明度 */
+}
+.action-text{
+  font-size:26rpx;
+  color:#333;
+  opacity:0.95; /* 操作项文字透明度 */
+}
+.logout-section{margin-top:20rpx}
+
+/* 退出按钮 - 添加透明度 */
+.logout-btn{
+  width:100%;
+  height:100rpx;
+  background:rgba(255,255,255,0.85);
+  backdrop-filter:blur(20rpx);
+  border-radius:25rpx;
+  border:none;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:15rpx;
+  box-shadow:0 10rpx 30rpx rgba(0,0,0,0.1);
+  font-size:32rpx;
+  color:#ff4757;
+  opacity:0.9; /* 退出按钮透明度 */
+}
+
+/* 弹窗相关 - 添加透明度 */
+.avatar-popup,.edit-popup{position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;display:flex;align-items:center;justify-content:center}
+.popup-overlay{
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.5);
+  backdrop-filter:blur(10rpx);
+  z-index:1;
+  opacity:0.85; /* 弹窗遮罩透明度 */
+}
+.popup-content{
+  position:relative;
+  background:white;
+  border-radius:30rpx;
+  padding:40rpx;
+  margin:0 30rpx;
+  width:90%;
+  max-width:600rpx;
+  max-height:80vh;
+  overflow-y:auto;
+  box-shadow:0 20rpx 60rpx rgba(0,0,0,0.3);
+  z-index:2;
+  opacity:0.95; /* 弹窗内容透明度 */
+}
+.edit-content{max-height:90vh}
+.popup-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:40rpx}
+.popup-title{
+  font-size:36rpx;
+  font-weight:bold;
+  color:#333;
+  opacity:0.95; /* 弹窗标题透明度 */
+}
+.popup-close{
+  font-size:40rpx;
+  color:#999;
+  opacity:0.9; /* 弹窗关闭按钮透明度 */
+}
+.avatar-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:30rpx;margin-bottom:40rpx}
+.avatar-item{
+  width:150rpx;
+  height:150rpx;
+  border-radius:20rpx;
+  overflow:hidden;
+  border:4rpx solid transparent;
+  opacity:0.95; /* 头像选项透明度 */
+}
+.avatar-item.selected{
+  border-color:#5677fc;
+  transform:scale(1.05);
+  opacity:1; /* 选中头像透明度100% */
+}
+.avatar-image{
+  width:100%;
+  height:100%;
+  opacity:0.95; /* 头像图片透明度 */
+}
+.edit-form{margin-bottom:40rpx}
+.form-item{margin-bottom:30rpx}
+.form-label{
+  display:block;
+  font-size:28rpx;
+  color:#333;
+  margin-bottom:10rpx;
+  opacity:0.95; /* 表单标签透明度 */
+}
+.form-input{
+  width:100%;
+  height:80rpx;
+  padding:0 20rpx;
+  border:2rpx solid #e5e5e5;
+  border-radius:10rpx;
+  font-size:28rpx;
+  box-sizing:border-box;
+  opacity:0.9; /* 表单输入框透明度 */
+}
+
+/* 性别选项网格布局核心样式 */
+.sex-radio-group{width:100%}
+.sex-grid{
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20rpx;
+  width: 100%;
+}
+.sex-radio-item{
+  display:flex;
+  align-items:center;
+  justify-content: center;
+  gap:10rpx;
+  width: 100%;
+  height: 80rpx;
+  background: #f8f9ff;
+  border-radius: 10rpx;
+  font-size:28rpx;
+  border: 2rpx solid #e5e5e5;
+  box-sizing: border-box;
+  opacity:0.95; /* 性别选项透明度 */
+}
+/* 选中状态美化 */
+.sex-radio-item radio:checked + text {
+  color: #5677fc;
+  font-weight: 600;
+}
+
+.popup-actions{display:flex;gap:20rpx}
+.action-btn{
+  flex:1;
+  height:80rpx;
+  border-radius:40rpx;
+  border:none;
+  font-size:32rpx;
+  opacity:0.95; /* 弹窗按钮透明度 */
+}
+.cancel-btn{background:#f5f5f5;color:#666}
+.confirm-btn{background:#5677fc;color:white}
+</style>

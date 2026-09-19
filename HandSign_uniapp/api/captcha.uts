@@ -1,0 +1,40 @@
+import { get, post } from '@/common/request.uts';
+import type { ApiResult } from '@/common/request.uts';
+
+/**
+ * 验证码获取返回结果
+ */
+export interface CaptchaGetResult {
+  captchaToken: string;
+  captchaImage: string;
+}
+
+/**
+ * 验证码校验参数
+ */
+export interface CaptchaCheckParams {
+  captchaToken: string;
+  userAnswer: string;
+}
+
+/**
+ * 验证码校验返回结果
+ */
+export interface CaptchaCheckResult {
+  success: boolean;
+}
+
+/**
+ * 获取图片验证码（返回token+base64图片）
+ */
+export function getCaptcha() {
+  return get<CaptchaGetResult>('/captcha/get');
+}
+
+/**
+ * 校验验证码
+ * @param params 校验参数
+ */
+export function checkCaptcha(params: CaptchaCheckParams) {
+  return post<CaptchaCheckResult>('/captcha/check', params);
+}

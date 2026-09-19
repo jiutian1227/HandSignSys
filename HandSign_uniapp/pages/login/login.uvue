@@ -1,0 +1,310 @@
+<template>
+  <view class="login-page">
+    <view class="bg-layer">
+      <image class="bg-img" src="" mode="scaleToFill"></image>
+      <view class="mask"></view>
+    </view>
+
+    <view class="content-wrapper">
+      <view class="title-box">
+        <text class="main-title">手语识别系统 - 用户登录</text>
+        <text class="sub-title">Sign Language Recognition</text>
+      </view>
+
+      <view class="login-container">
+        <view class="form-item">
+          <view class="input-wrapper">
+            <text class="input-icon">👤</text>
+            <input v-model="username" type="text" placeholder="请输入用户名" class="input-box" />
+          </view>
+        </view>
+        <view class="form-item">
+          <view class="input-wrapper">
+            <text class="input-icon">🔒</text>
+            <input v-model="password" type="password" placeholder="请输入密码" class="input-box" />
+          </view>
+        </view>
+
+        <view class="form-item">
+          <view class="input-wrapper captcha-wrapper">
+            <text class="input-icon">🔢</text>
+            <input v-model="captchaAnswer" type="number" placeholder="请输入验证码答案" class="input-box captcha-input" />
+            <image :src="captchaUrl" @click="refreshCaptcha" class="captcha-img" mode="widthFix"></image>
+            <text @click="refreshCaptcha" class="refresh-icon">🔄</text>
+          </view>
+        </view>
+
+        <button class="login-btn" @click="handleLogin" :disabled="isLoading">
+          {{ isLoading ? '登录中...' : '登录' }}
+        </button>
+        <view class="link-box">
+          <text @click="goRegister" class="register-link">还没有账号？去注册</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script setup lang="uts">
+import { ref, onMounted } from 'vue';
+import { userLogin, type LoginParams } from '@/api/login.uts';
+import { getCaptcha, checkCaptcha, type CaptchaGetResult } from '@/api/captcha.uts';
+import type { ApiResult } from '@/common/request.uts';
+import { setUserInfo, isLogin } from '@/utils/userInfo.uts';
+const username = ref('');
+const password = ref('');
+const captchaAnswer = ref('');
+const captchaUrl = ref('');
+const captchaToken = ref('');
+const isLoading = ref(false);
+
+onMounted(() => {
+  refreshCaptcha();
+  if (isLogin()) {
+    uni.switchTab({ url: '/pages/index/index' });
+  }
+});
+const refreshCaptcha = async () => {
+  try {
+    const res = await getCaptcha() as ApiResult<CaptchaGetResult>;
+    captchaUrl.value = res.data.captchaImage;
+    captchaToken.value = res.data.captchaToken;
+    captchaAnswer.value = '';
+  } catch (err) {
+    uni.showToast({ title: '验证码加载失败', icon: 'none' });
+  }
+};
+
+const handleLogin = async () => {
+  if (!username.value) return uni.showToast({ title: '请输入用户名', icon: 'none' });
+  if (!password.value) return uni.showToast({ title: '请输入密码', icon: 'none' });
+  if (!captchaAnswer.value) return uni.showToast({ title: '请输入验证码', icon: 'none' });
+  if (!captchaToken.value) return uni.showToast({ title: '请刷新验证码', icon: 'none' });
+
+  isLoading.value = true;
+  try {
+    // 校验验证码
+    const captchaRes = await checkCaptcha({ 
+      captchaToken: captchaToken.value,
+      userAnswer: captchaAnswer.value 
+    });
+    
+    // 验证码校验成功，执行登录
+    const loginParams: LoginParams = { username: username.value, password: password.value };
+    const loginRes = await userLogin(loginParams) as ApiResult<any>;
+    setUserInfo(loginRes.data);
+    uni.showToast({ title: '登录成功', icon: 'success', duration: 1500 });
+    
+    setTimeout(() => {
+      uni.switchTab({
+        url: '/pages/index/index',
+        fail: () => uni.navigateTo({ url: '/pages/index/index' })
+      });
+    }, 1500);
+  } catch (err: any) {
+    uni.showToast({ title: err.msg || '登录失败', icon: 'none' });
+    refreshCaptcha(); // 校验失败自动刷新验证码
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const goRegister = () => {
+  uni.navigateTo({
+    url: '/pages/register/register',
+    fail: () => uni.showToast({ title: '注册页跳转失败', icon: 'none' })
+  });
+};
+</script>
+
+<style scoped>
+.login-page {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+.bg-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.bg-img {
+  width: 100%;
+  height: 100%;
+  opacity: 0.2;
+}
+
+.mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.85) 100%);
+}
+
+.content-wrapper {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 40rpx;
+  box-sizing: border-box;
+  background-image:  url('https://free.picui.cn/free/2026/03/08/69ad28f585a3f.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.title-box {
+  text-align: center;
+  margin-bottom: 80rpx;
+}
+
+.main-title {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #2c3e50;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+.sub-title {
+  font-size: 24rpx;
+  color: #7f8c8d;
+  font-family: 'Arial', sans-serif;
+  display: block;
+}
+
+.login-container {
+  background: #ffffff;
+  padding: 60rpx 40rpx;
+  border-radius: 20rpx;
+  box-shadow: 0 8rpx 30rpx rgba(0, 0, 0, 0.08);
+  opacity: 0.75;
+}
+
+.form-item {
+  margin-bottom: 36rpx;
+}
+
+.input-wrapper {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  height: 98rpx;
+  padding: 0 24rpx;
+  border: 2rpx solid #e8f4f8;
+  border-radius: 16rpx;
+  background-color: #f8f9fa;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.input-wrapper:focus-within {
+  border-color: #3498db;
+  box-shadow: 0 0 0 6rpx rgba(52, 152, 219, 0.1);
+}
+
+.input-icon {
+  font-size: 32rpx;
+  color: #95a5a6;
+  margin-right: 20rpx;
+  line-height: 1;
+  flex-shrink: 0; 
+  padding: 5rpx;
+}
+
+.input-box {
+  flex: 1;
+  height: 100%;
+  font-size: 32rpx;
+  color: #2c3e50;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.input-box::placeholder {
+  color: #bdc3c7;
+  font-size: 30rpx;
+}
+
+.login-btn {
+  width: 100%;
+  height: 96rpx;
+  line-height: 96rpx;
+  background: linear-gradient(90deg, #3498db, #2980b9);
+  color: #ffffff;
+  border-radius: 16rpx;
+  border: none;
+  font-size: 34rpx;
+  font-weight: 600;
+  margin-top: 20rpx;
+  box-shadow: 0 6rpx 16rpx rgba(52, 152, 219, 0.3);
+  transition: all 0.3s ease;
+}
+
+.login-btn:disabled {
+  background: linear-gradient(90deg, #95a5a6, #7f8c8d);
+  box-shadow: none;
+}
+
+.login-btn:active:not(:disabled) {
+  transform: scale(0.98);
+  box-shadow: 0 3rpx 8rpx rgba(52, 152, 219, 0.2);
+}
+
+.link-box {
+  text-align: center;
+  margin-top: 40rpx;
+}
+
+.register-link {
+  font-size: 28rpx;
+  color: #3498db;
+  text-decoration: underline;
+  text-underline-offset: 4rpx;
+}
+
+.register-link:active {
+  color: #2980b9;
+}
+
+.captcha-wrapper {
+  padding-right: 15rpx;
+}
+
+.captcha-input {
+  flex: none;
+  width: 50%;
+}
+
+.captcha-img {
+  width: 140rpx;
+  height: 70rpx;
+  border-radius: 8rpx;
+  margin-left: 10rpx;
+  flex-shrink: 0;
+}
+
+.refresh-icon {
+  font-size: 24rpx;
+  color: #3498db;
+  margin-left: 8rpx;
+  padding: 8rpx;
+  flex-shrink: 0;
+}
+</style>

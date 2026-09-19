@@ -1,0 +1,169 @@
+{
+  "pages": [
+	{
+	  	"path" : "pages/login/login",
+	  	"style" : 
+	  	{
+	  		"navigationBarTitleText": "登录",
+	  		"enablePullDownRefresh": false
+	  	}
+	},
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "首页",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/CameraPredict/index",
+      "style": {
+        "navigationBarTitleText": "AI实时检测",
+        "enablePullDownRefresh": false
+      }
+    },
+    {
+    	"path" : "pages/register/register",
+    	"style" : 
+    	{
+    		"navigationBarTitleText": "注册",
+    		"enablePullDownRefresh": false
+    	}
+    },
+    {
+    	"path" : "pages/sign-language-chart/ASL-sign-language-chart",
+    	"style" : 
+    	{
+    		"navigationBarTitleText": "ASL手语表",
+    		"enablePullDownRefresh": false
+    	}
+    },
+    {
+    	"path" : "pages/sign-language-info/ASL-sign-language-info",
+    	"style" : 
+    	{
+    		"navigationBarTitleText": "ASL手语介绍",
+    		"enablePullDownRefresh": false
+    	}
+    },
+    {
+    	"path" : "pages/ImgPredict/ImgPredict",
+    	"style" : 
+    	{
+    		"navigationBarTitleText": "图片识别",
+    		"enablePullDownRefresh": false
+    	}
+    },
+    {
+    	"path" : "pages/imgRecords/imgRecords",
+    	"style" : 
+    	{
+    		"navigationBarTitleText": "图片识别记录列表",
+    		"enablePullDownRefresh": false
+    	}
+    },
+    {
+    	"path" : "pages/CameraRecords/CameraRecords",
+    	"style" : 
+    	{
+    		"navigationBarTitleText": "视频识别记录列表",
+    		"enablePullDownRefresh": false
+    	}
+    },
+    {
+    	"path" : "pages/profile/profile",
+    	"style" : 
+    	{
+    		"navigationBarTitleText": "我的信息",
+    		"enablePullDownRefresh": false
+    	}
+    },
+    {
+    	"path" : "pages/UserList/UserList",
+    	"style" : 
+    	{
+    		"navigationBarTitleText": "用户列表",
+    		"enablePullDownRefresh": false
+    	}
+    },
+    {
+    	"path" : "pages/Functions/Functions",
+    	"style" : 
+    	{
+    		"navigationBarTitleText": "在线功能",
+    		"enablePullDownRefresh": false
+    	}
+    },
+    {
+    	"path" : "pages/sign-language-info/CSL-sign-language-info",
+    	"style" : 
+    	{
+    		"navigationBarTitleText": "CSL手语介绍",
+    		"enablePullDownRefresh": false
+    	}
+    },
+	{
+		"path" : "pages/sign-language-chart/CSL-sign-language-chart",
+		"style" : 
+		{
+			"navigationBarTitleText": "CSL常用手语表",
+			"enablePullDownRefresh": false
+		}
+	},
+	{
+	  "path": "pages/china-sign/china-sign",
+	  "style": {
+		"navigationBarTitleText": "中国手语学习",
+		"navigationBarBackgroundColor": "#3498db",
+		"navigationBarTextStyle": "white"
+	  }
+	},
+	{
+	  "path": "pages/america-sign/america-sign",
+	  "style": {
+		"navigationBarTitleText": "美国手语学习",
+		"navigationBarBackgroundColor": "#3498db",
+		"navigationBarTextStyle": "white"
+	  }
+	}
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "AI检测工具",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#F6F6F6"
+  },
+  "uniIdRouter": {},
+	"tabBar": {
+	  "color": "#666",
+	  "selectedColor": "#007AFF",
+	  "backgroundColor": "#fff",
+	  "borderStyle": "black",
+	  "list": [
+		{
+		  "pagePath": "pages/index/index",
+		  "text": "首页",
+		  "iconPath": "/static/icons/shouyeweixuan.png",
+		  "selectedIconPath": "/static/icons/shouyeyixuan.png"
+		},
+		{
+		  "pagePath": "pages/Functions/Functions",
+		  "text": "在线功能",
+		  "iconPath": "/static/icons/diandanweixuan.png",
+		  "selectedIconPath": "/static/icons/diandanyixuan.png"
+		},
+		{
+		  "pagePath": "pages/CameraPredict/index",
+		  "text": "实时检测",
+		  "iconPath": "/static/icons/shipinweixuanzhong.png",
+		  "selectedIconPath": "/static/icons/shipinxuanzhong.png"
+		},
+		{
+		  "pagePath": "pages/profile/profile",
+		  "text": "我的信息",
+		  "iconPath": "/static/icons/wodeweixuan.png",
+		  "selectedIconPath": "/static/icons/wodeyixuan.png"
+		}
+	  ]
+	}
+}

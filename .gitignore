@@ -1,0 +1,33 @@
+# FFmpeg 可执行文件
+ffmpeg/
+*.exe
+
+# 模型权重文件
+*.pt
+*.pth
+*.onnx
+*.weights
+
+# 依赖和构建产物
+node_modules/
+oh_modules/
+build/
+dist/
+.hvigor/
+.cxx/
+
+# 视频和压缩包
+*.mp4
+*.avi
+*.zip
+*.rar
+
+# Word 临时文件
+~$*
+
+# IDE 和系统文件
+.idea/
+.vscode/
+*.iml
+*.log
+.DS_Store

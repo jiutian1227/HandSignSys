@@ -1,0 +1,418 @@
+<template>
+  <view class="register-page">
+    <view class="bg-layer">
+      <image class="bg-img" src="" mode="scaleToFill"></image>
+      <view class="mask"></view>
+    </view>
+
+    <view class="content-wrapper">
+      <view class="title-box">
+        <text class="main-title">手语识别系统 - 用户注册</text>
+        <text class="sub-title">Sign Language Recognition</text>
+      </view>
+
+      <view class="register-container">
+        <view class="form-item">
+          <view class="input-wrapper" :class="{ 'error-border': usernameError }">
+            <text class="input-icon">👤</text>
+            <input 
+              v-model="username" 
+              type="text" 
+              placeholder="请输入用户名" 
+              class="input-box"
+              @input="clearUsernameError"
+            />
+          </view>
+          <text v-if="usernameError" class="error-text">{{ usernameError }}</text>
+        </view>
+        
+        <view class="form-item">
+          <view class="input-wrapper" :class="{ 'error-border': pwdError && password.value }">
+            <text class="input-icon">🔒</text>
+            <input 
+              v-model="password" 
+              type="password" 
+              placeholder="请输入密码（不少于6位）" 
+              class="input-box"
+              @input="clearPwdError"
+            />
+          </view>
+          <text v-if="pwdError" class="error-text">{{ pwdError }}</text>
+        </view>
+        
+        <view class="form-item">
+          <view class="input-wrapper" :class="{ 'error-border': pwdError && confirmPwd.value && password.value !== confirmPwd.value }">
+            <text class="input-icon">🔐</text>
+            <input 
+              v-model="confirmPwd" 
+              type="password" 
+              placeholder="请确认密码" 
+              class="input-box"
+              @input="clearPwdError"
+            />
+          </view>
+        </view>
+        
+        <view class="form-item">
+          <view class="input-wrapper captcha-wrapper" :class="{ 'error-border': captchaError }">
+            <text class="input-icon">🔢</text>
+            <input 
+              v-model="captchaAnswer" 
+              type="number" 
+              placeholder="请输入验证码答案" 
+              class="input-box captcha-input"
+              @input="clearCaptchaError"
+            />
+            <image :src="captchaUrl" @click="refreshCaptcha" class="captcha-img" mode="widthFix"></image>
+            <text @click="refreshCaptcha" class="refresh-icon">🔄</text>
+          </view>
+          <text v-if="captchaError" class="error-text">{{ captchaError }}</text>
+        </view>
+        
+        <button 
+          class="register-btn" 
+          @click="handleRegister"
+          :disabled="isLoading"
+        >
+          {{ isLoading ? '注册中...' : '注册' }}
+        </button>
+        
+        <view class="link-box">
+          <text @click="goLogin" class="login-link">已有账号？去登录</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script setup lang="uts">
+import { ref, onMounted } from 'vue';
+import { userRegister, type RegisterParams } from '@/api/register.uts';
+import { getCaptcha, checkCaptcha, type CaptchaGetResult } from '@/api/captcha.uts';
+import type { ApiResult } from '@/common/request.uts';
+
+const username = ref('');
+const password = ref('');
+const confirmPwd = ref('');
+const isLoading = ref(false);
+const usernameError = ref('');
+const pwdError = ref('');
+const captchaAnswer = ref('');
+const captchaUrl = ref('');
+const captchaError = ref('');
+const captchaToken = ref('');
+
+const clearUsernameError = () => {
+  usernameError.value = '';
+};
+
+const clearPwdError = () => {
+  pwdError.value = '';
+};
+
+const clearCaptchaError = () => {
+  captchaError.value = '';
+};
+
+onMounted(() => refreshCaptcha());
+
+const refreshCaptcha = async () => {
+  try {
+    const res = await getCaptcha() as ApiResult<CaptchaGetResult>;
+    captchaUrl.value = res.data.captchaImage;
+    captchaToken.value = res.data.captchaToken;
+    captchaAnswer.value = '';
+    captchaError.value = '';
+  } catch (err) {
+    uni.showToast({ title: '验证码加载失败', icon: 'none' });
+  }
+};
+
+const handleRegister = async () => {
+  if (!username.value) {
+    usernameError.value = '请输入用户名';
+    return;
+  }
+  if (!password.value) {
+    pwdError.value = '请输入密码';
+    return;
+  }
+  if (password.value.length < 6) {
+    pwdError.value = '密码长度不能少于6位';
+    return;
+  }
+  if (password.value !== confirmPwd.value) {
+    pwdError.value = '两次输入的密码不一致';
+    return;
+  }
+  if (!captchaAnswer.value) {
+    captchaError.value = '请输入验证码';
+    return;
+  }
+  if (!captchaToken.value) {
+    captchaError.value = '请刷新验证码';
+    return;
+  }
+
+  try {
+    const captchaRes = await checkCaptcha({ 
+      captchaToken: captchaToken.value,
+      userAnswer: captchaAnswer.value 
+    }) as ApiResult<any>;
+  } catch (err: any) {
+    captchaError.value = err.msg || '验证码错误';
+    refreshCaptcha();
+    return;
+  }
+
+  const registerParams: RegisterParams = {
+    username: username.value,
+    password: password.value
+  };
+
+  isLoading.value = true;
+  try {
+    await userRegister(registerParams);
+    
+    uni.showToast({ 
+      title: '注册成功！即将跳转到登录页', 
+      icon: 'success',
+      duration: 2000 
+    });
+    
+    setTimeout(() => {
+      uni.navigateBack({
+        delta: 1,
+        fail: () => {
+          uni.redirectTo({ url: '/pages/login/login' });
+        }
+      });
+    }, 2000);
+
+  } catch (err: any) {
+    if (err.msg) {
+      usernameError.value = err.msg;
+    } else {
+      uni.showToast({ title: '注册失败，请稍后重试', icon: 'none' });
+    }
+    console.error('注册失败：', err);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const goLogin = () => {
+  uni.navigateBack({
+    delta: 1,
+    fail: () => {
+      uni.redirectTo({ url: '/pages/login/login' });
+    }
+  });
+};
+</script>
+
+<style scoped>
+.register-page {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+.bg-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.bg-img {
+  width: 100%;
+  height: 100%;
+  opacity: 0.2;
+}
+
+.mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.85) 100%);
+}
+
+.content-wrapper {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 40rpx;
+  box-sizing: border-box;
+  background-image:  url('https://free.picui.cn/free/2026/03/08/69ad28f585a3f.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.title-box {
+  text-align: center;
+  margin-bottom: 60rpx;
+}
+
+.main-title {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #2c3e50;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+.sub-title {
+  font-size: 24rpx;
+  color: #7f8c8d;
+  font-family: 'Arial', sans-serif;
+  display: block;
+}
+
+.register-container {
+  background: #ffffff;
+  padding: 60rpx 40rpx;
+  border-radius: 20rpx;
+  box-shadow: 0 8rpx 30rpx rgba(0, 0, 0, 0.08);
+  opacity: 0.75;
+}
+
+.form-item {
+  margin-bottom: 30rpx;
+}
+
+.input-wrapper {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  height: 98rpx;
+  padding: 0 24rpx;
+  border: 2rpx solid #e8f4f8;
+  border-radius: 16rpx;
+  background-color: #f8f9fa;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.input-wrapper.error-border {
+  border-color: #ff3b30;
+}
+
+.input-wrapper:focus-within {
+  border-color: #3498db;
+  box-shadow: 0 0 0 6rpx rgba(52, 152, 219, 0.1);
+}
+
+.input-icon {
+  font-size: 32rpx;
+  color: #95a5a6;
+  margin-right: 20rpx;
+  line-height: 1;
+  flex-shrink: 0; 
+  padding: 5rpx;
+}
+
+.input-box {
+  flex: 1;
+  height: 100%;
+  font-size: 32rpx;
+  color: #2c3e50;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.input-box::placeholder {
+  color: #bdc3c7;
+  font-size: 30rpx;
+}
+
+.error-text {
+  font-size: 24rpx;
+  color: #ff3b30;
+  margin-top: 12rpx;
+  display: block;
+  padding-left: 10rpx;
+  line-height: 1.4;
+}
+
+.register-btn {
+  width: 100%;
+  height: 96rpx;
+  line-height: 96rpx;
+  background: linear-gradient(90deg, #3498db, #2980b9);
+  color: #ffffff;
+  border-radius: 16rpx;
+  border: none;
+  font-size: 34rpx;
+  font-weight: 600;
+  margin-top: 20rpx;
+  box-shadow: 0 6rpx 16rpx rgba(52, 152, 219, 0.3);
+  transition: all 0.3s ease;
+}
+
+.register-btn:disabled {
+  background: linear-gradient(90deg, #95a5a6, #7f8c8d);
+  box-shadow: none;
+  transform: none !important;
+}
+
+.register-btn:active:not(:disabled) {
+  transform: scale(0.98);
+  box-shadow: 0 3rpx 8rpx rgba(52, 152, 219, 0.2);
+}
+
+.link-box {
+  text-align: center;
+  margin-top: 40rpx;
+}
+
+.login-link {
+  font-size: 28rpx;
+  color: #3498db;
+  text-decoration: underline;
+  text-underline-offset: 4rpx;
+}
+
+.login-link:active {
+  color: #2980b9;
+}
+
+.captcha-wrapper {
+  padding-right: 15rpx;
+}
+
+.captcha-input {
+  flex: none;
+  width: 50%;
+}
+
+.captcha-img {
+  width: 140rpx;
+  height: 70rpx;
+  border-radius: 8rpx;
+  margin-left: 10rpx;
+  flex-shrink: 0;
+}
+
+.refresh-icon {
+  font-size: 24rpx;
+  color: #3498db;
+  margin-left: 8rpx;
+  padding: 8rpx;
+  flex-shrink: 0;
+}
+</style>

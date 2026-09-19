@@ -1,0 +1,322 @@
+<template>
+  <view class="csl-intro-page">
+    <scroll-view class="content-scroll" scroll-y>
+      <view class="content-wrapper">
+        <view class="header-card">
+          <image 
+            class="header-bg" 
+            src="https://free.picui.cn/free/2026/03/08/69ad28f585a3f.png" 
+            mode="widthFix">
+          </image>
+          <view class="header-mask">
+            <text class="main-title">中国手语 (CSL)</text>
+            <text class="sub-title">Chinese Sign Language</text>
+          </view>
+        </view>
+        <view class="section-card">
+          <view class="section-header">
+            <view class="section-icon"></view>
+            <text class="section-title">什么是中国手语</text>
+          </view>
+          <text class="section-text">
+            中国手语（Chinese Sign Language，简称CSL）是基于手势、面部表情及肢体动作构成的视觉交流系统，
+            是中国聋人社区的主要交流语言，具有完整的语法体系和文化内涵，是国家通用语言的重要组成部分。
+          </text>
+        </view>
+
+        <view class="section-card">
+          <view class="section-header">
+            <view class="section-icon"></view>
+            <text class="section-title">语言特性</text>
+          </view>
+          <text class="section-text">
+            中国手语结合汉语特点和中国文化特色，通过手势与视觉对象的相似性增强表达，如“烟火”手势模仿火焰升腾形态。
+            其语法结构以语序和表情辅助表意，兼具简洁性和形象性，大量吸收汉语词汇特征并结合肢体动作创造动态表达。
+            国内高校开设的手语专业课程通过互动学习与聋人社区合作，促进文化理解与包容性发展。
+          </text>
+        </view>
+
+        <view class="section-card">
+          <view class="section-header">
+            <view class="section-icon"></view>
+            <text class="section-title">发展历史</text>
+          </view>
+          <text class="section-text">
+            中国手语的规范化工作始于20世纪50年代，1959年《聋哑人通用手语草图》的发布奠定了统一基础。
+            经过多次修订完善，2018年《国家通用手语常用词表》正式发布，规范了手语使用。
+            技术发展推动手语翻译软件、手语播报等辅助工具的普及，教育机构通过课程设置促进聋健共融，
+            让手语沟通更便捷，助力无障碍社会建设。
+          </text>
+        </view>
+
+        <view class="info-card">
+          <text class="info-title">基本信息</text>
+          <view class="correct-table">
+
+            <view class="table-header">
+              <view class="header-col">
+                <text class="header-text">项目</text>
+                <text class="header-text">内容</text>
+              </view>
+            </view>
+
+            <view class="table-body">
+              <view class="table-row">
+                <view class="row-label">中文名</view>
+                <view class="row-value">中国手语</view>
+              </view>
+              <view class="table-row">
+                <view class="row-label">别 名</view>
+                <view class="row-value">CSL</view>
+              </view>
+              <view class="table-row">
+                <view class="row-label">外文名</view>
+                <view class="row-value">Chinese sign<br>language</view>
+              </view>
+              <view class="table-row">
+                <view class="row-label">性 质</view>
+                <view class="row-value">国家通用语言</view>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <view class="reference-card">
+          <text class="reference-title">参考资料</text>
+          <view class="reference-list">
+            <view class="reference-item">
+              <text class="ref-content">手语的视觉特性与语言学习的深远影响．中国残疾人联合会．2024-09-24</text>
+            </view>
+            <view class="reference-item">
+              <text class="ref-content">国家通用手语推广:促进包容性与文化理解的新途径．中国特殊教育．2025-03-10</text>
+            </view>
+            <view class="reference-item">
+              <text class="ref-content">中国手语:历史、文化、教育及挑战——构建无障碍沟通的未来之路．中国聋人协会．2025-04-16</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="bottom-space"></view>
+      </view>
+    </scroll-view>
+  </view>
+</template>
+
+<script setup lang="uts">
+</script>
+
+<style scoped>
+.csl-intro-page {
+  width: 100%;
+  height: 100vh;
+  background-color: #f5f7fa;
+}
+
+.content-scroll {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.content-wrapper {
+  width: 100%;
+  padding: 20rpx;
+  box-sizing: border-box;
+}
+
+.header-card {
+  width: 100%;
+  height: 300rpx;
+  border-radius: 20rpx;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 30rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
+}
+
+.header-bg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.header-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.main-title {
+  font-size: 48rpx;
+  color: #ffffff;
+  font-weight: bold;
+  margin-bottom: 10rpx;
+}
+
+.sub-title {
+  font-size: 28rpx;
+  color: #f8f9fa;
+  opacity: 0.9;
+}
+
+.section-card {
+  width: 100%;
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  margin-bottom: 24rpx;
+  box-sizing: border-box;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.section-icon {
+  width: 28%;
+  height: 12rpx;
+  background-color: #3498db;
+  border-radius: 6rpx;
+  margin-bottom: 5rpx;
+}
+
+.section-title {
+  font-size: 36rpx;
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.section-text {
+  font-size: 32rpx;
+  line-height: 1.8;
+  color: #34495e;
+  text-align: justify;
+}
+
+.info-card {
+  width: 100%;
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  margin-bottom: 24rpx;
+  box-sizing: border-box;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
+}
+
+.info-title {
+  font-size: 36rpx;
+  color: #2c3e50;
+  font-weight: 600;
+  margin-bottom: 24rpx;
+  display: block;
+}
+
+.correct-table {
+  width: 100%;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 12rpx;
+  overflow: hidden;
+}
+
+.table-header {
+  background-color: #3498db;
+  padding: 20rpx 0;
+}
+
+.header-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.header-text {
+  font-size: 36rpx;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.table-body {
+  width: 100%;
+}
+
+.table-row {
+  display: flex;
+  border-bottom: 1rpx solid #e0e0e0;
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.row-label {
+  width: 100%;
+  padding: 24rpx 20rpx;
+  background-color: #f5f7fa;
+  font-size: 32rpx;
+  color: #7f8c8d;
+  text-align: center;
+}
+
+.row-value {
+  flex: 1;
+  padding: 24rpx 20rpx;
+  background-color: #ffffff;
+  font-size: 36rpx;
+  color: #2c3e50;
+  font-weight: 500;
+  text-align: center;
+}
+
+.reference-card {
+  width: 100%;
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  box-sizing: border-box;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
+}
+
+.reference-title {
+  font-size: 36rpx;
+  color: #2c3e50;
+  font-weight: 600;
+  margin-bottom: 24rpx;
+  display: block;
+}
+
+.reference-list {
+  width: 100%;
+}
+
+.reference-item {
+  padding: 16rpx 20rpx;
+  margin-bottom: 12rpx;
+  background-color: #f8f9fa;
+  border-radius: 12rpx;
+}
+
+.reference-item:last-child {
+  margin-bottom: 0;
+}
+
+.ref-content {
+  font-size: 28rpx;
+  color: #7f8c8d;
+  line-height: 1.6;
+}
+
+.bottom-space {
+  height: 40rpx;
+}
+</style>

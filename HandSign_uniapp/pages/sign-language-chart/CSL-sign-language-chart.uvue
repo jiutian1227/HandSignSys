@@ -1,0 +1,294 @@
+<template>
+  <view class="sign-language-page">
+    <view class="page-title">
+      <view class="title-wrap">
+        <text class="title-text">中国手语常用词汇表</text>
+        <view class="title-line"></view>
+      </view>
+    </view>
+
+    <scroll-view class="content-scroll" scroll-y>
+      <view class="container-wrap">
+        <view class="grid-container">
+          <view class="grid-item">
+            <text class="word">时间/时候</text>
+            <text class="desc">一手食指横划一圈，表示流逝</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">你/您/你的/这</text>
+            <text class="desc">食指直指对方</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">早上</text>
+            <text class="desc">一手五指并拢，从低处向上微扬</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">9</text>
+            <text class="desc">一手食指弯成钩状</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">0</text>
+            <text class="desc">拇食指圈成圆，其余三指伸直</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">快乐/高兴</text>
+            <text class="desc">双手掌心向上，嘴角上扬微抖</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">新</text>
+            <text class="desc">一手拇指指尖轻擦另一手背</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">祝</text>
+            <text class="desc">双手抱拳微微上举</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">请</text>
+            <text class="desc">一手平伸、向内轻拉</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">路</text>
+            <text class="desc">双手指尖一前一后交替向前</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">生日</text>
+            <text class="desc">一手比圆放在胸前，像蛋糕</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">平</text>
+            <text class="desc">双掌平行平放</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">安</text>
+            <text class="desc">双手掌心向下轻轻按下</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">朋友</text>
+            <text class="desc">两手食指勾在一起轻晃</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">8</text>
+            <text class="desc">拇食指分开成八字</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">认识</text>
+            <text class="desc">一手食指点太阳穴再指向对方</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">名片</text>
+            <text class="desc">双手像捏小卡片互递</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">结婚/妻子</text>
+            <text class="desc">双手并齐贴胸</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">茶</text>
+            <text class="desc">一手拿杯状轻抿</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">有</text>
+            <text class="desc">一手握拳向上微抬</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">花</text>
+            <text class="desc">五指张开轻抖上扬</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">今天</text>
+            <text class="desc">一手掌贴胸口短顿</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">门</text>
+            <text class="desc">两手直立开合如门框</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">停</text>
+            <text class="desc">一手平掌向前挡</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">谢谢</text>
+            <text class="desc">一手竖掌向前微躬</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">慢</text>
+            <text class="desc">一手平伸慢速前移</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">走</text>
+            <text class="desc">两手交替踏步</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">晚</text>
+            <text class="desc">一手遮眼向下轻落</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">我</text>
+            <text class="desc">食指指自己胸口</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">爱</text>
+            <text class="desc">一手抚心向外送出</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">好</text>
+            <text class="desc">拇指竖起</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">人</text>
+            <text class="desc">两手分开站立形</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">什么</text>
+            <text class="desc">两手摊开疑惑状</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">名字</text>
+            <text class="desc">两手指尖互点</text>
+          </view>
+          <view class="grid-item">
+            <text class="word">介绍</text>
+            <text class="desc">一手把一物从左推向右</text>
+          </view>
+          <view class="grid-item empty"></view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+</template>
+
+<script setup lang="uts">
+</script>
+
+<style scoped>
+.sign-language-page {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, #f5f8ff 0%, #e8f0ff 100%);
+  box-sizing: border-box;
+}
+
+.page-title {
+  width: 100%;
+  padding: 40rpx 0;
+  background: #ffffff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4rpx 20rpx rgba(120, 144, 160, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 99;
+  box-sizing: border-box;
+}
+
+.title-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.title-text {
+  font-size: 42rpx;
+  font-weight: 700;
+  color: #2d5aa9;
+  letter-spacing: 4rpx;
+  margin-bottom: 15rpx;
+  text-shadow: 0 2rpx 4rpx rgba(45, 90, 169, 0.1);
+}
+
+.title-line {
+  width: 180rpx;
+  height: 6rpx;
+  background: linear-gradient(90deg, #4a89dc, #3b78d8);
+  border-radius: 3rpx;
+}
+
+.content-scroll {
+  width: 100%;
+  height: calc(100vh - 180rpx);
+  box-sizing: border-box;
+}
+
+.container-wrap {
+  width: 95%;
+  margin: 0 auto;
+  padding: 10rpx 0;
+}
+
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 25rpx;
+  padding: 20rpx 10rpx;
+  box-sizing: border-box;
+}
+
+.grid-item {
+  background: #ffffff;
+  border-radius: 20rpx;
+  padding: 35rpx 25rpx;
+  box-shadow: 0 6rpx 25rpx rgba(120, 144, 160, 0.12);
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+  border: 2rpx solid #f0f5ff;
+  position: relative;
+  overflow: hidden;
+}
+
+.grid-item::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60rpx;
+  height: 60rpx;
+  background: linear-gradient(135deg, #ebf3ff 0%, #e1edff 100%);
+  border-radius: 0 0 0 60rpx;
+  opacity: 0.7;
+}
+
+/* 核心修改：点击时放大效果 */
+.grid-item:active {
+  transform: scale(1.05);
+  box-shadow: 0 8rpx 30rpx rgba(120, 144, 160, 0.18);
+  border-color: #b8d0ff;
+  background: #f9fbff;
+  z-index: 10;
+}
+
+.empty {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  border: none;
+}
+
+.empty::before {
+  display: none;
+}
+
+.word {
+  display: block;
+  font-size: 32rpx;
+  color: #2d5aa9;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 15rpx;
+  padding-bottom: 15rpx;
+  border-bottom: 2rpx solid #f0f5ff;
+  letter-spacing: 2rpx;
+  position: relative;
+  z-index: 1;
+}
+
+.desc {
+  display: block;
+  font-size: 26rpx;
+  color: #4a6e9c;
+  line-height: 1.8;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+</style>

@@ -1,0 +1,258 @@
+<template>
+  <view class="pagination-wrap" v-if="total > 0">
+    <view class="pagination">
+      <button 
+        class="page-btn prev-btn" 
+        @click="$emit('prev')" 
+        :disabled="currentPage === 1"
+      >
+        上一页
+      </button>
+      <view class="page-info">   {{ currentPage }}  /  {{ totalPages }}   </view>
+      <view class="page-jump">
+        <input 
+          v-model.number="localJumpPage" 
+          class="jump-input" 
+          type="number" 
+          placeholder="页码"
+          min="1"
+          :max="totalPages"
+        />
+        <button class="jump-btn" @click="handleJump">跳转</button>
+      </view>
+      <view class="page-total">共 {{ total }} 条记录</view>
+      <button 
+        class="page-btn next-btn" 
+        @click="$emit('next')" 
+        :disabled="currentPage === totalPages"
+      >
+        下一页
+      </button>
+    </view>
+  </view>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, watch, defineProps, defineEmits } from 'vue';
+
+const props = defineProps({
+  currentPage: {
+    type: Number,
+    default: 1
+  },
+  total: {
+    type: Number,
+    default: 0
+  },
+  pageSize: {
+    type: Number,
+    default: 5
+  }
+});
+
+const emit = defineEmits(['prev', 'next', 'jump']);
+
+const localJumpPage = ref(1);
+
+const totalPages = computed(() => {
+  return Math.ceil(props.total / props.pageSize);
+});
+
+const handleJump = () => {
+  if (localJumpPage.value < 1 || localJumpPage.value > totalPages.value) {
+    uni.showToast({ title: `请输入1-${totalPages.value}之间的页码`, icon: 'none' });
+    return;
+  }
+  emit('jump', localJumpPage.value);
+};
+
+watch(() => props.currentPage, (newValue) => {
+  localJumpPage.value = newValue;
+});
+</script>
+
+<style scoped>
+.pagination-wrap {
+  width: 100%;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  box-sizing: border-box;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  white-space: nowrap;
+  min-height: 80rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+  border: 1rpx solid #f0f0f0;
+  transition: all 0.3s ease;
+  margin-top: 32rpx;
+  margin-bottom: 0;
+}
+
+.pagination-wrap:hover {
+  box-shadow: 0 6rpx 16rpx rgba(0, 0, 0, 0.12);
+  transform: translateY(-2rpx);
+}
+
+.pagination {
+  display: block !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  padding-bottom: 8rpx !important;
+  width: auto !important;
+  min-width: 100% !important;
+  box-sizing: border-box !important;
+  height: auto !important;
+}
+
+/* 关键修改1：移除*通配符，替换为具体选择器 */
+.pagination view,
+.pagination button,
+.pagination input {
+  display: inline-block !important;
+  vertical-align: middle !important;
+  margin: 0 4rpx !important;
+}
+
+.page-jump {
+  display: inline-block !important;
+  vertical-align: middle !important;
+  margin: 0 4rpx !important;
+}
+
+/* 关键修改2：移除*通配符，替换为具体选择器 */
+.page-jump view,
+.page-jump button,
+.page-jump input {
+  display: inline-block !important;
+  vertical-align: middle !important;
+  margin: 0 3rpx !important;
+}
+
+.page-btn {
+  background: #1890ff;
+  color: #fff;
+  border: none;
+  border-radius: 6rpx;
+  padding: 0 16rpx;
+  height: 56rpx;
+  font-size: 24rpx;
+  flex-shrink: 0;
+  white-space: nowrap;
+  line-height: 56rpx;
+  vertical-align: middle;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-width: 56rpx;
+  transition: all 0.3s ease;
+}
+
+.page-btn:hover {
+  background: #40a9ff;
+  transform: translateY(-2rpx);
+  box-shadow: 0 4rpx 8rpx rgba(0, 0, 0, 0.15);
+}
+
+.page-btn:disabled {
+  background: #e0e0e0;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.page-info, .page-total {
+  font-size: 24rpx;
+  color: #666;
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin: 0 4rpx;
+}
+
+.page-jump {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.jump-input {
+  width: 80rpx;
+  height: 56rpx;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 6rpx;
+  padding: 0 10rpx;
+  font-size: 24rpx;
+  text-align: center;
+  box-sizing: border-box;
+  line-height: 56rpx;
+  vertical-align: middle;
+}
+
+.jump-btn {
+  background: #52c41a;
+  color: #fff;
+  border: none;
+  border-radius: 6rpx;
+  padding: 0 14rpx;
+  height: 56rpx;
+  font-size: 24rpx;
+  line-height: 56rpx;
+  vertical-align: middle;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.jump-btn:hover {
+  background: #73d13d;
+  transform: translateY(-2rpx);
+  box-shadow: 0 4rpx 8rpx rgba(0, 0, 0, 0.15);
+}
+
+/* 响应式适配：不同屏幕尺寸保持排版 */
+@media (max-width: 750rpx) {
+  .pagination {
+    justify-content: flex-start;
+    gap: 6rpx;
+  }
+  
+  .page-btn {
+    padding: 0 12rpx;
+    font-size: 22rpx;
+  }
+  
+  .page-info, .page-total {
+    font-size: 22rpx;
+  }
+  
+  .jump-input {
+    width: 70rpx;
+  }
+  
+  .jump-btn {
+    padding: 0 12rpx;
+    font-size: 22rpx;
+  }
+}
+
+@media (min-width: 751rpx) and (max-width: 1024rpx) {
+  .pagination {
+    gap: 10rpx;
+  }
+  
+  .page-btn {
+    padding: 0 14rpx;
+  }
+  
+  .page-info, .page-total {
+    font-size: 24rpx;
+  }
+}
+
+.pagination-wrap::-webkit-scrollbar {
+  display: none;
+}
+</style>

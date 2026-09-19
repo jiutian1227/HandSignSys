@@ -1,0 +1,321 @@
+<template>
+  <view class="asl-intro-page">
+    <scroll-view class="content-scroll" scroll-y>
+      <view class="content-wrapper">
+        <view class="header-card">
+          <image 
+            class="header-bg" 
+            src="https://free.picui.cn/free/2026/03/08/69ad28f585a3f.png" 
+            mode="widthFix">
+          </image>
+          <view class="header-mask">
+            <text class="main-title">美国手势语言 (ASL)</text>
+            <text class="sub-title">American Sign Language</text>
+          </view>
+        </view>
+        <view class="section-card">
+          <view class="section-header">
+            <view class="section-icon"></view>
+            <text class="section-title">什么是ASL</text>
+          </view>
+          <text class="section-text">
+            美国手势语言（American Sign Language，简称ASL）是基于手势、面部表情及肢体动作构成的视觉交流系统，
+            是北美聋人社区的主要交流语言，具有完整的语法体系和文化内涵。
+          </text>
+        </view>
+
+        <view class="section-card">
+          <view class="section-header">
+            <view class="section-icon"></view>
+            <text class="section-title">语言特性</text>
+          </view>
+          <text class="section-text">
+            ASL通过手势与视觉对象的相似性增强表达，如“爆炸”手势模仿声音形态。其语法结构兼具主语-动词-宾语(SVO)
+            和主语-宾语-动词(SOV)两种句式，并利用分类符号创造动态视觉动画。杜克大学推出的ASL课程通过互动学习
+            与聋人社区合作，促进文化理解与包容性发展。
+          </text>
+        </view>
+
+        <view class="section-card">
+          <view class="section-header">
+            <view class="section-icon"></view>
+            <text class="section-title">发展历史</text>
+          </view>
+          <text class="section-text">
+            ASL起源于1817年美国聋人学校的成立，融合法国手语与本土手势语形成独特体系。黑人美国手语(BASL)作为其
+            语言变体，具有更大手势范围和丰富面部表情。技术发展推动手语翻译软件等辅助工具的普及，教育机构通过
+            课程设置促进聋健共融，让手语沟通更便捷。
+          </text>
+        </view>
+
+        <view class="info-card">
+          <text class="info-title">基本信息</text>
+          <view class="correct-table">
+
+            <view class="table-header">
+              <view class="header-col">
+                <text class="header-text">项目</text>
+                <text class="header-text">内容</text>
+              </view>
+            </view>
+
+            <view class="table-body">
+              <view class="table-row">
+                <view class="row-label">中文名</view>
+                <view class="row-value">美国手势语言</view>
+              </view>
+              <view class="table-row">
+                <view class="row-label">别 名</view>
+                <view class="row-value">ASL</view>
+              </view>
+              <view class="table-row">
+                <view class="row-label">外文名</view>
+                <view class="row-value">American sign<br>language</view>
+              </view>
+              <view class="table-row">
+                <view class="row-label">性 质</view>
+                <view class="row-value">专用术语</view>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <view class="reference-card">
+          <text class="reference-title">参考资料</text>
+          <view class="reference-list">
+            <view class="reference-item">
+              <text class="ref-content">手语的视觉特性与语言学习的深远影响．www.forwardpathway.com．2024-09-24</text>
+            </view>
+            <view class="reference-item">
+              <text class="ref-content">杜克大学美国手语课程:促进包容性与文化理解的新途径．www.forwardpathway.com．2025-03-10</text>
+            </view>
+            <view class="reference-item">
+              <text class="ref-content">美国手语:历史、文化、教育及挑战——构建无障碍沟通的未来之路．www.forwardpathway.com．2025-04-16</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="bottom-space"></view>
+      </view>
+    </scroll-view>
+  </view>
+</template>
+
+<script setup lang="uts">
+</script>
+
+<style scoped>
+.asl-intro-page {
+  width: 100%;
+  height: 100vh;
+  background-color: #f5f7fa;
+}
+
+.content-scroll {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.content-wrapper {
+  width: 100%;
+  padding: 20rpx;
+  box-sizing: border-box;
+}
+
+.header-card {
+  width: 100%;
+  height: 300rpx;
+  border-radius: 20rpx;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 30rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
+}
+
+.header-bg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.header-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.main-title {
+  font-size: 48rpx;
+  color: #ffffff;
+  font-weight: bold;
+  margin-bottom: 10rpx;
+}
+
+.sub-title {
+  font-size: 28rpx;
+  color: #f8f9fa;
+  opacity: 0.9;
+}
+
+.section-card {
+  width: 100%;
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  margin-bottom: 24rpx;
+  box-sizing: border-box;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.section-icon {
+  width: 28%;
+  height: 12rpx;
+  background-color: #3498db;
+  border-radius: 6rpx;
+  margin-bottom: 5rpx;
+}
+
+.section-title {
+  font-size: 36rpx;
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.section-text {
+  font-size: 32rpx;
+  line-height: 1.8;
+  color: #34495e;
+  text-align: justify;
+}
+
+.info-card {
+  width: 100%;
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  margin-bottom: 24rpx;
+  box-sizing: border-box;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
+}
+
+.info-title {
+  font-size: 36rpx;
+  color: #2c3e50;
+  font-weight: 600;
+  margin-bottom: 24rpx;
+  display: block;
+}
+
+.correct-table {
+  width: 100%;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 12rpx;
+  overflow: hidden;
+}
+
+.table-header {
+  background-color: #3498db;
+  padding: 20rpx 0;
+}
+
+.header-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.header-text {
+  font-size: 36rpx;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.table-body {
+  width: 100%;
+}
+
+.table-row {
+  display: flex;
+  border-bottom: 1rpx solid #e0e0e0;
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.row-label {
+  width: 100%;
+  padding: 24rpx 20rpx;
+  background-color: #f5f7fa;
+  font-size: 32rpx;
+  color: #7f8c8d;
+  text-align: center;
+}
+
+.row-value {
+  flex: 1;
+  padding: 24rpx 20rpx;
+  background-color: #ffffff;
+  font-size: 36rpx;
+  color: #2c3e50;
+  font-weight: 500;
+  text-align: center;
+}
+
+.reference-card {
+  width: 100%;
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  box-sizing: border-box;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
+}
+
+.reference-title {
+  font-size: 36rpx;
+  color: #2c3e50;
+  font-weight: 600;
+  margin-bottom: 24rpx;
+  display: block;
+}
+
+.reference-list {
+  width: 100%;
+}
+
+.reference-item {
+  padding: 16rpx 20rpx;
+  margin-bottom: 12rpx;
+  background-color: #f8f9fa;
+  border-radius: 12rpx;
+}
+
+.reference-item:last-child {
+  margin-bottom: 0;
+}
+
+.ref-content {
+  font-size: 28rpx;
+  color: #7f8c8d;
+  line-height: 1.6;
+}
+
+.bottom-space {
+  height: 40rpx;
+}
+</style>

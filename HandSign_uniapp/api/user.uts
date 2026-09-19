@@ -1,0 +1,132 @@
+// 导入common目录下的request工具
+import { get, post, del } from "@/common/request.uts";
+
+/**
+ * 用户信息类型（完全匹配后端User实体字段）
+ */
+export interface User {
+  id?: number;               // 主键ID（自增）
+  username?: string;         // 用户名（唯一）
+  password?: string;         // 密码（前端仅传明文，后端自动加密）
+  name?: string;             // 真实姓名
+  sex?: string;              // 性别
+  email?: string;            // 邮箱
+  tel?: string;              // 手机号
+  role?: string;             // 角色：admin / user
+  avatar?: string;           // 头像地址
+  time?: string;             // 注册时间（格式：yyyy-MM-dd HH:mm:ss）
+}
+
+/**
+ * 获取用户列表（分页）
+ * @param pageNum 页码（默认1）
+ * @param pageSize 页大小（默认10）
+ * @param search 用户名模糊搜索
+ */
+export const getUserPage = async (
+  pageNum: number = 1,
+  pageSize: number = 10,
+  search: string = ""
+) => {
+  const params = {
+    pageNum,
+    pageSize,
+    search
+  };
+  const result = await get<{
+    records: User[];
+    total: number;
+    size: number;
+    current: number;
+  }>("/user", params);
+  return (result as { data: any }).data;
+};
+
+/**
+ * 根据用户名获取用户信息
+ * @param username 用户名（必填）
+ */
+export const getUserByUsername = async (username: string) => {
+  if (!username) {
+    uni.showToast({ title: "查询用户需传入用户名", icon: "none" });
+    throw new Error("查询用户需传入用户名");
+  }
+  const result = await get<User>(`/user/${username}`);
+  return (result as { data: User }).data;
+};
+
+/**
+ * 获取所有用户列表
+ */
+export const getAllUsers = async () => {
+  const result = await get<User[]>("/user/all");
+  return (result as { data: User[] }).data;
+};
+
+/**
+ * 用户登录
+ * @param user 登录参数（username + password）
+ */
+export const userLogin = async (user: {
+  username: string;
+  password: string;
+}) => {
+  if (!user.username || !user.password) {
+    uni.showToast({ title: "用户名和密码不能为空", icon: "none" });
+    throw new Error("用户名和密码不能为空");
+  }
+  const result = await post<User>("/user/login", user);
+  return (result as { data: User }).data;
+};
+
+/**
+ * 用户注册
+ * @param user 注册参数（至少包含username + password）
+ */
+export const userRegister = async (user: Partial<User>) => {
+  if (!user.username || !user.password) {
+    uni.showToast({ title: "用户名和密码不能为空", icon: "none" });
+    throw new Error("用户名和密码不能为空");
+  }
+  const result = await post<null>("/user/register", user);
+  return (result as { data: null }).data;
+};
+
+/**
+ * 修改用户信息
+ * @param user 要修改的用户信息（必须包含id）
+ */
+export const updateUser = async (user: User) => {
+  if (!user.id) {
+    uni.showToast({ title: "修改用户必须包含ID", icon: "none" });
+    throw new Error("修改用户必须包含ID");
+  }
+  const result = await post<User>("/user/update", user);
+  return (result as { data: User }).data;
+};
+
+/**
+ * 删除用户
+ * @param id 用户ID
+ */
+export const deleteUser = async (id: number) => {
+  if (!id || id <= 0) {
+    uni.showToast({ title: "删除用户需传入有效ID", icon: "none" });
+    throw new Error("删除用户需传入有效ID");
+  }
+  const result = await del<null>(`/user/${id}`);
+  return (result as { data: null }).data;
+};
+
+/**
+ * 新增用户（管理员专用）
+ * @param user 要新增的用户信息
+ */
+export const addUser = async (user: Partial<User>) => {
+  if (!user.username || !user.password) {
+    uni.showToast({ title: "用户名和密码不能为空", icon: "none" });
+    throw new Error("用户名和密码不能为空");
+  }
+  const result = await post<User>("/user", user);
+  return (result as { data: User }).data;
+};

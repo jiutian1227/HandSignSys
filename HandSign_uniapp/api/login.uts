@@ -1,0 +1,31 @@
+import { post } from '@/common/request.uts';
+
+/**
+ * 用户登录接口参数类型
+ */
+export interface LoginParams {
+  username: string;
+  password: string;
+}
+
+/**
+ * 用户信息返回类型（根据后端实际返回字段调整）
+ */
+export interface UserInfo {
+  id?: number;
+  username: string;
+  name?: string;
+  role?: string;
+  avatar?: string;
+  // 其他字段可根据后端返回补充
+}
+
+/**
+ * 登录接口调用方法
+ * @param params 登录参数（用户名+密码）
+ * @returns Promise<ApiResult<UserInfo>>
+ */
+export function userLogin(params: LoginParams) {
+  // 调用后端 /user/login 接口
+  return post<UserInfo>('/user/login', params);
+}

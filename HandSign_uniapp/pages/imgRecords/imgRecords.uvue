@@ -1,0 +1,702 @@
+<template>
+  <view class="page-container">
+    <view class="search-bar">
+      <view class="search-box" v-if="userRole == 'admin'">
+        <text class="icon-search">🔍</text>
+        <input
+          v-model="searchKeyword"
+          class="search-input"
+          placeholder="搜索用户名"
+          @input="handleSearch"
+        ></input>
+        <view class="search-clear" @click="searchKeyword=''" v-if="searchKeyword">×</view>
+      </view>
+    </view>
+
+    <view class="loading-wrap" v-if="loading">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <scroll-view class="list-scroll" scroll-y="true" v-else>
+      <view class="empty-wrap" v-if="filteredList.length === 0">
+        <text class="empty-icon">📷</text>
+        <text class="empty-text">{{ searchKeyword ? '未搜索到相关记录' : '暂无数据' }}</text>
+      </view>
+
+      <view class="grid-container">
+        <view class="grid-item" v-for="item in currentPageData" :key="item.id">
+          <!-- 图片区域 -->
+          <view class="img-box" @click="previewImage(item.inputImg)">
+            <image
+              v-if="item.inputImg&&!item.inputImgErr"
+              :src="item.inputImg"
+              class="img"
+              mode="aspectFill"
+              @load="item.inputImgErr = false"
+              @error="item.inputImgErr = true"
+            ></image>
+            <view v-else class="placeholder">
+              <text class="placeholder-icon">📷</text>
+              <text class="placeholder-text">{{item.inputImg?'加载失败':'无图'}}</text>
+            </view>
+          </view>
+          
+          <!-- 用户信息 -->
+          <view class="item-info">
+            <text class="username">{{ item.username || '匿名用户' }}</text>
+            <text class="time">{{ item.startTime || '暂无时间' }}</text>
+            <view class="role-tag" :class="item.role">
+              <text class="role-text">{{ item.role === 'admin' ? '管理员' : '普通用户' }}</text>
+            </view>
+          </view>
+          
+          <!-- 按钮区 -->
+          <view class="btn-area">
+            <button class="btn detail-btn" @click.stop="openViewDialog(item)">详情</button>
+            <button class="btn del-btn" v-if="userRole==='admin'" @click.stop="doDelete(item.id)">删除</button>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+
+    <!-- 分页组件：完全复用参考页面的引入方式 -->
+    <Pagination 
+      v-if="filteredList.length > 0 && !loading"
+      :current-page="currentPage"
+      :total="filteredList.length"
+      :page-size="pageSize"
+      @prev="prevPage"
+      @next="nextPage"
+      @jump="jumpToPage"
+    />
+
+    <!-- 弹窗部分保持不变 -->
+    <view class="dialog-mask" v-if="showDialog" @click="closeDialog"></view>
+    <view class="dialog-wrap" v-if="showDialog">
+      <view class="dialog-header">
+        <text class="dialog-title">记录详情</text>
+        <text class="dialog-close" @click="closeDialog">×</text>
+      </view>
+      <scroll-view class="dialog-content" scroll-y="true">
+        <view class="detail-card">
+          <view class="detail-grid">
+            <view class="detail-item">
+              <view class="detail-item-header">
+                <text class="detail-item-icon">🆔</text>
+                <text class="detail-item-label">记录ID</text>
+              </view>
+              <text class="detail-item-value">{{detail.id||'-'}}</text>
+            </view>
+            <view class="detail-item">
+              <view class="detail-item-header">
+                <text class="detail-item-icon">👤</text>
+                <text class="detail-item-label">用户名</text>
+              </view>
+              <text class="detail-item-value">{{detail.username||'-'}}</text>
+            </view>
+            <view class="detail-item">
+              <view class="detail-item-header">
+                <text class="detail-item-icon">🏷️</text>
+                <text class="detail-item-label">角色</text>
+              </view>
+              <text class="detail-item-value">{{detail.role==='admin'?'管理员':'普通用户'}}</text>
+            </view>
+            <view class="detail-item">
+              <view class="detail-item-header">
+                <text class="detail-item-icon">📝</text>
+                <text class="detail-item-label">标签</text>
+              </view>
+              <text class="detail-item-value">{{detail.label||'-'}}</text>
+            </view>
+            <view class="detail-item">
+              <view class="detail-item-header">
+                <text class="detail-item-icon">🎯</text>
+                <text class="detail-item-label">置信度</text>
+              </view>
+              <text class="detail-item-value">{{detail.conf||'0'}}</text>
+            </view>
+            <view class="detail-item">
+              <view class="detail-item-header">
+                <text class="detail-item-icon">🕒</text>
+                <text class="detail-item-label">创建时间</text>
+              </view>
+              <text class="detail-item-value">{{detail.startTime||'-'}}</text>
+            </view>
+          </view>
+        </view>
+        
+        <view style="margin-bottom: 10%;" class="img-container" v-if="detail.inputImg || detail.outImg">
+          <view class="img-section" v-if="detail.inputImg">
+            <view class="img-section-header">
+              <text class="img-section-icon">📸</text>
+              <text class="img-section-title">输入图片</text>
+            </view>
+            <view class="img-wrapper" @click="previewImage(detail.inputImg)">
+              <image 
+                v-if="!detail.inputImgErr" 
+                :src="detail.inputImg" 
+                class="detail-img" 
+                @load="detail.inputImgErr = false"
+                @error="detail.inputImgErr = true"
+              ></image>
+              <view v-else class="detail-img-placeholder">
+                <text class="placeholder-icon">❌</text>
+                <text>加载失败</text>
+              </view>
+            </view>
+          </view>
+          
+          <view class="img-section" v-if="detail.outImg">
+            <view class="img-section-header">
+              <text class="img-section-icon">🔍</text>
+              <text class="img-section-title">输出图片</text>
+            </view>
+            <view class="img-wrapper" @click="previewImage(detail.outImg)">
+              <image 
+                v-if="!detail.outImgErr" 
+                :src="detail.outImg" 
+                class="detail-img" 
+                @load="detail.outImgErr = false"
+                @error="detail.outImgErr = true"
+              ></image>
+              <view v-else class="detail-img-placeholder">
+                <text class="placeholder-icon">❌</text>
+                <text>加载失败</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { isLogin, getUserInfo } from '@/utils/userInfo.uts'
+import { getImgRecordsAll, deleteImgRecord } from '@/api/imgRecords.uts'
+// 1. 引入分页组件（和参考页面一致）
+import Pagination from '@/components/Pagination.uvue'
+
+interface ImgRecord{
+  id:number;username:string;role:string;label?:string;conf?:string|number;
+  startTime?:string;inputImg?:string;outImg?:string;inputImgErr?:boolean;outImgErr?:boolean;
+}
+
+const loading=ref(false),searchKeyword=ref('')
+const userInfo=getUserInfo(),userRole=ref(userInfo?.role||'user'),userName=ref(userInfo?.username||'')
+const roleOptions=ref([{label:'全部角色',value:''},{label:'管理员',value:'admin'},{label:'普通用户',value:'user'}])
+const roleIndex=ref(0),filterUsername=ref('')
+const currentPage=ref(1),pageSize=ref(4),jumpPage=ref<number|null>(null)
+const list=ref<ImgRecord[]>([])
+const filteredList=computed(()=>{
+  let arr=[...list.value]
+  if(searchKeyword.value)arr=arr.filter(x=>x.username.includes(searchKeyword.value))
+  if(userRole.value==='admin'&&roleOptions.value[roleIndex.value].value)arr=arr.filter(x=>x.role===roleOptions.value[roleIndex.value].value)
+  if(userRole.value==='admin'&&filterUsername.value)arr=arr.filter(x=>x.username===filterUsername.value)
+  if(userRole.value!=='admin')arr=arr.filter(x=>x.username===userName.value)
+  return arr
+})
+const totalPages=computed(()=>Math.ceil(filteredList.value.length/pageSize.value))
+const currentPageData=computed(()=>filteredList.value.slice((currentPage.value-1)*pageSize.value,currentPage.value*pageSize.value))
+const showDialog=ref(false),detail=ref<ImgRecord>({inputImgErr:false,outImgErr:false})
+
+async function loadList(){
+  if(!isLogin())return uni.redirectTo({url:'/pages/login/login'})
+  loading.value=true
+  try{
+    const res=await getImgRecordsAll(userRole.value as any,userName.value)
+    list.value=(res||[]).map(x=>({...x,inputImgErr:false,outImgErr:false}))
+    currentPage.value=1
+  }finally{loading.value=false}
+}
+function handleSearch(){clearTimeout((window as any).t);(window as any).t=setTimeout(()=>currentPage.value=1,300)}
+function handleRoleChange(e:any){roleIndex.value=e.detail.value;currentPage.value=1}
+function handleUsernameFilter(){currentPage.value=1}
+function prevPage(){if(currentPage.value>1)currentPage.value--}
+function nextPage(){if(currentPage.value<totalPages.value)currentPage.value++}
+
+// 2. 修复jumpToPage方法：接收组件传递的页码参数（和参考页面一致）
+function jumpToPage(targetPage: number) {
+  if (!targetPage || targetPage < 1 || targetPage > totalPages.value) {
+    uni.showToast({ title: `请输入1-${totalPages.value}之间的页码`, icon: 'none' });
+    return;
+  }
+  currentPage.value = targetPage;
+  jumpPage.value = null; // 清空输入框
+}
+
+// 保留原有方法（兼容），可删除
+// function jumpToPage(){if(!jumpPage.value||jumpPage.value<1||jumpPage.value>totalPages.value)return;currentPage.value=jumpPage.value;jumpPage.value=null}
+
+function openViewDialog(item:ImgRecord){detail.value={...item,inputImgErr:false,outImgErr:false};showDialog.value=true}
+function closeDialog(){showDialog.value=false}
+function previewImage(u:string){uni.previewImage({urls:[u],current:u})}
+async function doDelete(id:number){
+  uni.showModal({title:'确认删除',content:'删除后不可恢复',async success(r){
+    if(r.confirm){loading.value=true;try{await deleteImgRecord(id);loadList()}finally{loading.value=false}}
+  }})
+}
+onMounted(()=>loadList())
+</script>
+
+<style scoped>
+page{background:#f5f7fa}
+.page-container{
+	width:100%;
+	min-height:100vh;
+}
+
+.search-bar{padding:16rpx 20rpx;background:#fff;box-shadow:0 2rpx 8rpx rgba(0,0,0,0.05);position:sticky;top:0;z-index:100}
+.search-box{display:grid;grid-template-columns:auto 1fr auto;align-items:center;background:#f1f5f9;border-radius:40rpx;height:84rpx;padding:0 24rpx;transition:all 0.3s ease;width:100%;gap:16rpx}
+.search-box:focus-within{background:#ffffff;box-shadow:0 0 0 3rpx rgba(59, 130, 246, 0.1)}
+.icon-search{font-size:32rpx;color:#94a3b8}
+.search-input{font-size:30rpx;color:#334155;background:transparent;border:none;outline:none;width:100%}
+.search-clear{font-size:36rpx;color:#94a3b8;cursor:pointer;transition:all 0.2s ease}
+.search-clear:active{transform:scale(0.9);color:#64748b}
+
+.filter-bar{display:flex;flex-wrap:wrap;padding:20rpx;background:#fff;margin:16rpx;border-radius:12rpx;box-shadow:0 2rpx 8rpx rgba(0,0,0,0.05)}
+.filter-item{flex:1;min-width:280rpx;display:flex;align-items:center;margin-bottom:12rpx}
+.filter-label{font-size:28rpx;color:#333;margin-right:16rpx;white-space:nowrap}
+.picker-wrap{flex:1;height:72rpx;background:#f8f9fa;border-radius:8rpx;padding:0 24rpx;display:flex;align-items:center;justify-content:space-between;font-size:26rpx;color:#333}
+.arrow{font-size:24rpx;color:#999}
+.filter-input{flex:1;height:72rpx;background:#f8f9fa;border-radius:8rpx;padding:0 24rpx;font-size:26rpx;color:#333}
+
+.loading-wrap{padding:120rpx 0;display:flex;flex-direction:column;align-items:center}
+.loading-spinner{width:72rpx;height:72rpx;border:8rpx solid #f0f0f0;border-top-color:#1890ff;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:24rpx}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:30rpx;color:#999}
+
+.empty-wrap{padding:120rpx 0;text-align:center;color:#999}
+.empty-icon{font-size:140rpx;margin-bottom:24rpx;display:block}
+.empty-text{font-size:30rpx}
+
+.list-scroll{
+	height:100vh;
+	padding:16rpx
+}
+
+/* 网格容器 */
+.grid-container{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(300rpx, 1fr));
+  gap:20rpx;
+  padding-bottom:20rpx;
+}
+
+/* 网格项 */
+.grid-item{
+  background:#fff;
+  border-radius:16rpx;
+  box-shadow:0 4rpx 12rpx rgba(0,0,0,0.08);
+  overflow:hidden;
+  transition:transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.grid-item:active{
+  transform:scale(0.98);
+  box-shadow:0 2rpx 8rpx rgba(0,0,0,0.05);
+}
+
+/* 图片区 */
+.img-box{
+  width:100%;
+  aspect-ratio:1/1;
+  position:relative;
+  background:#f8f9fa;
+  box-shadow:inset 0 0 0 1rpx rgba(0,0,0,0.05);
+  cursor:pointer;
+  overflow:hidden;
+}
+
+.img{
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  transition:transform 0.3s ease;
+}
+
+.img-box:hover .img{
+  transform:scale(1.05);
+}
+
+.placeholder{
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  color:#94a3b8;
+  background:#f8f9fa;
+}
+
+.placeholder-icon{font-size:60rpx;margin-bottom:12rpx}
+.placeholder-text{font-size:26rpx}
+
+/* 项目信息 */
+.item-info{
+  padding:16rpx;
+  border-bottom:1rpx solid #f1f5f9;
+}
+
+/* 用户名美化 */
+.username{
+  font-size:28rpx;
+  font-weight:700;
+  color:#1e293b;
+  margin-bottom:8rpx;
+  letter-spacing:1rpx;
+  text-shadow:0 1rpx 2rpx rgba(0,0,0,0.05);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.time{
+  font-size:22rpx;
+  color:#64748b;
+  margin-bottom:12rpx;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* 角色标签美化 */
+.role-tag{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:6rpx 16rpx;
+  border-radius:20rpx;
+  box-shadow:0 2rpx 8rpx rgba(0,0,0,0.08);
+}
+
+.role-tag.admin{
+  background:linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+  border:1rpx solid #93c5fd;
+}
+
+.role-tag.user{
+  background:linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border:1rpx solid #86efac;
+}
+
+.role-text{
+  font-size:20rpx;
+  font-weight:600;
+}
+
+.role-tag.admin .role-text{
+  color:#0284c7;
+}
+
+.role-tag.user .role-text{
+  color:#059669;
+}
+
+/* 按钮区 */
+.btn-area{
+  display:flex;
+  flex-direction:row;
+  gap:12rpx;
+  padding:16rpx;
+  width:100%;
+  box-sizing:border-box;
+}
+
+.btn{
+  flex:1;
+  height:64rpx;
+  font-size:24rpx;
+  border:none;
+  border-radius:8rpx;
+  font-weight:600;
+  letter-spacing:2rpx;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.detail-btn{
+  background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  color:#2563eb;
+  box-shadow:0 4rpx 12rpx rgba(37, 99, 235, 0.15);
+}
+
+.del-btn{
+  background:linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  color:#dc2626;
+  box-shadow:0 4rpx 12rpx rgba(220, 38, 38, 0.15);
+}
+
+.btn:active{
+  transform:scale(0.98);
+  opacity:0.9;
+}
+
+/* 弹窗 */
+.dialog-mask{
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+  background:rgba(0,0,0,0.5);
+  z-index:999;
+}
+
+.dialog-wrap{
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  width:90%;
+  max-width:700rpx;
+  background:#fff;
+  border-radius:20rpx;
+  z-index:1000;
+  box-shadow:0 8rpx 24rpx rgba(0,0,0,0.15);
+  overflow:hidden;
+}
+
+.dialog-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:24rpx;
+  background:linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  border-bottom:1rpx solid #e5e7eb;
+}
+
+.dialog-title{
+  font-size:32rpx;
+  font-weight:600;
+  color:#1f2937;
+}
+
+.dialog-close{
+  font-size:36rpx;
+  color:#6b7280;
+  width:48rpx;
+  height:48rpx;
+  text-align:center;
+  line-height:48rpx;
+  border-radius:50%;
+  transition:all 0.3s ease;
+}
+
+.dialog-close:active{
+  background:#d1d5db;
+  transform:scale(0.9);
+}
+
+.dialog-content{
+  padding:24rpx;
+  max-height:70vh;
+}
+
+/* 详情卡片 */
+.detail-card{
+  background:#f9fafb;
+  border-radius:12rpx;
+  padding:20rpx;
+  margin-bottom:24rpx;
+  border:1rpx solid #e5e7eb;
+}
+
+/* 详情网格 */
+.detail-grid{
+  display:grid;
+  grid-template-columns:repeat(2, 1fr);
+  gap:16rpx;
+}
+
+/* 详情项 */
+.detail-item{
+  background:#fff;
+  border-radius:8rpx;
+  padding:16rpx;
+  box-shadow:0 1rpx 3rpx rgba(0,0,0,0.05);
+  border:1rpx solid #f3f4f6;
+  text-align:center;
+}
+
+.detail-item-header{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-bottom:8rpx;
+  gap:8rpx;
+}
+
+.detail-item-icon{
+  font-size:24rpx;
+  flex-shrink:0;
+}
+
+.detail-item-label{
+  font-size:22rpx;
+  color:#6b7280;
+  font-weight:500;
+  text-transform:uppercase;
+  letter-spacing:0.5rpx;
+  flex:1;
+}
+
+.detail-item-value{
+  display:block;
+  font-size:26rpx;
+  color:#1f2937;
+  font-weight:600;
+  word-break:break-all;
+  line-height:1.4;
+  text-align:center;
+}
+
+/* 图片容器 */
+.img-container{
+  margin-top:8rpx;
+}
+
+/* 图片区块 */
+.img-section{
+  margin-bottom:24rpx;
+}
+
+.img-section:last-child{
+  margin-bottom:0;
+}
+
+.img-section-header{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-bottom:12rpx;
+  padding-bottom:8rpx;
+  border-bottom:1rpx solid #e5e7eb;
+  gap:8rpx;
+}
+
+.img-section-icon{
+  font-size:24rpx;
+  flex-shrink:0;
+}
+
+.img-section-title{
+  font-size:24rpx;
+  color:#4b5563;
+  font-weight:600;
+  flex:1;
+  text-align:center;
+}
+
+/* 图片包装器 */
+.img-wrapper{
+  border-radius:12rpx;
+  overflow:hidden;
+  background:#f8f9fa;
+  box-shadow:inset 0 0 0 1rpx rgba(0,0,0,0.05);
+  cursor:pointer;
+  transition:transform 0.3s ease;
+}
+
+.img-wrapper:active{
+  transform:scale(0.98);
+}
+
+.detail-img{
+  width:100%;
+  aspect-ratio:1/1;
+  object-fit:cover;
+}
+
+.detail-img-placeholder{
+  height:300rpx;
+  background:#f8f9fa;
+  border-radius:12rpx;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  color:#9ca3af;
+  font-size:24rpx;
+  border:1rpx dashed #d1d5db;
+}
+
+.placeholder-icon{
+  font-size:48rpx;
+  margin-bottom:12rpx;
+}
+
+/* 3. 删除原有分页样式，避免冲突 */
+/* 原有.pagination相关样式已移除 */
+
+/* 响应式设计 */
+@media screen and (max-width: 750rpx) {
+  .detail-grid{
+    grid-template-columns:1fr;
+  }
+  
+  .dialog-wrap{
+    width:95%;
+  }
+  
+  .dialog-content{
+    padding:16rpx;
+  }
+  
+  .detail-card{
+    padding:16rpx;
+  }
+  
+  .detail-item{
+    padding:12rpx;
+  }
+  
+  .detail-item-label{
+    font-size:20rpx;
+  }
+  
+  .detail-item-value{
+    font-size:24rpx;
+  }
+  
+  .detail-img-placeholder{
+    height:240rpx;
+  }
+  
+  .grid-container{
+    grid-template-columns:repeat(2, 1fr);
+    gap:16rpx;
+  }
+  
+  .btn-area{
+    flex-direction:column;
+    gap:10rpx;
+  }
+  
+  .btn{
+    width:100%;
+  }
+}
+
+@media screen and (min-width: 751rpx) and (max-width: 1024rpx) {
+  .grid-container{
+    grid-template-columns:repeat(3, 1fr);
+  }
+}
+
+@media screen and (min-width: 1025rpx) {
+  .grid-container{
+    grid-template-columns:repeat(4, 1fr);
+  }
+}
+</style>

@@ -1,0 +1,75 @@
+// 请求配置
+export interface RequestOptions { // 增加 export
+  url: string;
+  method?: 'GET' | 'POST' | 'DELETE' | 'PUT';
+  data?: object;
+  isImage?: boolean; // 是否为图片流请求
+}
+
+// 后端返回格式
+export interface ApiResult<T = any> { // 增加 export
+  code: string | number;
+  msg: string;
+  data: T;
+}
+
+// 后端基础地址
+// const BASE_URL = 'http://localhost:9999';
+// const BASE_URL = 'http://47.108.20.251:9999';
+const BASE_URL = 'https://springboot.fanzengxie.icu';
+
+/**
+ * 通用请求方法
+ * @param options 请求配置
+ */
+export function request<T = any>(options: RequestOptions): Promise<ApiResult<T> | string> {
+  return new Promise((resolve, reject) => {
+    // 图片流请求处理
+    if (options.isImage) {
+      uni.request({
+        url: BASE_URL + options.url + '?' + Date.now(), // 防缓存
+        method: options.method || 'GET',
+        responseType: 'arraybuffer', // 关键：接收二进制流
+        success: (res) => {
+          // 转base64供img标签使用
+          const base64 = uni.arrayBufferToBase64(res.data as ArrayBuffer);
+          resolve('data:image/jpeg;base64,' + base64);
+        },
+        fail: (err) => {
+          uni.showToast({ title: '图片加载失败', icon: 'none' });
+          reject(err);
+        }
+      });
+      return;
+    }
+
+    // 普通JSON请求（原有逻辑）
+    uni.request({
+      url: BASE_URL + options.url,
+      method: options.method || 'GET',
+      data: options.data || {},
+      header: { 'Content-Type': 'application/json;charset=UTF-8' },
+      success: (res) => {
+        const result = res.data as ApiResult<T>;
+        if (result.code === 200 || result.code === "200") {
+          resolve(result);
+        } else {
+          uni.showToast({ title: result.msg || '请求失败', icon: 'none' });
+          reject(result);
+        }
+      },
+      fail: (err) => {
+        uni.showToast({ title: '网络异常', icon: 'none' });
+        reject(err);
+      }
+    });
+  });
+}
+
+// 简化请求方法
+export const get = <T = any>(url: string, data?: object) => request<T>({ url, method: 'GET', data });
+export const post = <T = any>(url: string, data?: object) => request<T>({ url, method: 'POST', data });
+//  DELETE 简化方法
+export const del = <T = any>(url: string, data?: object) => request<T>({ url, method: 'DELETE', data });
+// 图片流GET请求
+export const getImage = <T = any>(url: string) => request<T>({ url, method: 'GET', isImage: true });

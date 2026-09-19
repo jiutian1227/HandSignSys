@@ -1,0 +1,1216 @@
+<template>
+  <view class="user-list-page">
+    <view class="top-bar">
+      <button class="add-btn" @click="openDialog('add')">
+        + 新增用户
+      </button>
+    </view>
+    <view class="search-container">
+      <view class="search-box">
+        <input 
+          v-model="searchKeyword" 
+          class="search-input" 
+          placeholder="搜索用户名或读者ID"
+          @input="handleSearch"
+        />
+        <view class="search-clear" @click="searchKeyword = ''" v-if="searchKeyword">
+          ×
+        </view>
+      </view>
+    </view>
+
+    <view class="filter-tabs">
+      <view 
+        class="filter-tab" 
+        :class="{ active: currentFilter === 'all' }"
+        @click="setFilter('all')"
+      >
+        全部角色
+      </view>
+      <view 
+        class="filter-tab" 
+        :class="{ active: currentFilter === 'user' }"
+        @click="setFilter('user')"
+      >
+        普通用户
+      </view>
+      <view 
+        class="filter-tab" 
+        :class="{ active: currentFilter === 'admin' }"
+        @click="setFilter('admin')"
+      >
+        管理员
+      </view>
+    </view>
+
+    <view class="loading" v-if="loading">
+      <view class="spinner"></view>
+      <view class="loading-text">加载中...</view>
+    </view>
+
+    <view class="user-container" v-else>
+      <view class="user-item" v-for="user in currentPageData" :key="user.id">
+        <view class="user-info" @click="openDialog('view', user)">
+          <view class="user-avatar">
+            <image 
+              :src="user.avatar || defaultAvatar" 
+              mode="widthFix"
+              class="avatar-img"
+            ></image>
+          </view>
+          <view class="user-main">
+            <view class="user-username" :title="user.username">
+              {{ truncateText(user.username, 12) }}
+            </view>
+            <view class="user-role">
+              <view 
+                class="role-tag" 
+                :class="user.role === 'admin' ? 'role-admin' : user.role === 'vip' ? 'role-vip' : 'role-normal'"
+              >
+                {{ roleMap[user.role] }}
+              </view>
+            </view>
+          </view>
+          <view class="user-time">
+            <view class="create-time">创建：{{ formatDate(user.time) }}</view>
+          </view>
+        </view>
+        <view class="user-actions">
+          <button class="action-btn view-btn" @click="openDialog('view', user)">查看</button>
+          <button class="action-btn edit-btn" @click="openDialog('edit', user)">编辑</button>
+          <button class="action-btn delete-btn" @click="showDeleteConfirm(user.id)">删除</button>
+        </view>
+      </view>
+
+      <view class="empty" v-if="filteredUsers.length === 0">
+        <view class="empty-icon">👤</view>
+        <view class="empty-text">
+          {{ searchKeyword ? '未找到相关用户' : '暂无用户数据' }}
+        </view>
+      </view>
+    </view>
+
+    <Pagination 
+      v-if="filteredUsers.length > 0"
+      :current-page="currentPage"
+      :total="filteredUsers.length"
+      :page-size="pageSize"
+      @prev="prevPage"
+      @next="nextPage"
+      @jump="jumpToPage"
+    />
+
+
+    <view class="delete-dialog" v-if="showDeletePopup">
+      <view class="dialog-mask" @click="showDeletePopup = false"></view>
+      <view class="dialog-content">
+        <view class="dialog-header">
+          <view class="dialog-title">确认删除</view>
+          <view class="dialog-close" @click="showDeletePopup = false">×</view>
+        </view>
+        <view class="dialog-body">
+          <view class="delete-desc">确定要删除该用户吗？此操作不可撤销！</view>
+        </view>
+        <view class="dialog-footer">
+          <button class="dialog-btn cancel" @click="showDeletePopup = false">取消</button>
+          <button class="dialog-btn confirm" @click="confirmDelete">确认删除</button>
+        </view>
+      </view>
+    </view>
+
+    <view class="custom-popup"  v-if="popupVisible">
+      <view class="popup-mask" @click="closeDialog"></view>
+      <view class="popup-content" style="width: 80%;!important">
+        <view class="popup-header">
+          <view class="popup-title">{{ dialogTitle }}</view>
+          <view class="popup-close" @click="closeDialog">×</view>
+        </view>
+        <view class="popup-body">
+          <view v-if="dialogMode === 'view'" class="view-form">
+            <view class="form-item">
+              <div class="input-with-icon">
+                <span class="input-icon">👤</span>
+                <view class="form-value">用户名：{{ currentUser.username || '未设置' }}</view>
+              </div>
+            </view>
+            <view class="form-item">
+              <div class="input-with-icon">
+                <span class="input-icon">📝</span>
+                <view class="form-value">姓名：{{ currentUser.name || '未设置' }}</view>
+              </div>
+            </view>
+            <view class="form-item">
+              <div class="input-with-icon">
+                <span class="input-icon">⚥</span>
+                <view class="form-value">性别：{{ currentUser.sex || '未知' }}</view>
+              </div>
+            </view>
+            <view class="form-item">
+              <div class="input-with-icon">
+                <span class="input-icon">📧</span>
+                <view class="form-value">邮箱：{{ currentUser.email || '未设置' }}</view>
+              </div>
+            </view>
+            <view class="form-item">
+              <div class="input-with-icon">
+                <span class="input-icon">📱</span>
+                <view class="form-value">手机号：{{ currentUser.tel || '未设置' }}</view>
+              </div>
+            </view>
+            <view class="form-item">
+              <div class="input-with-icon">
+                <span class="input-icon">🎭</span>
+                <view class="form-value">身份：{{ roleMap[currentUser.role] || '普通用户' }}</view>
+              </div>
+            </view>
+            <view class="form-item">
+              <div class="input-with-icon">
+                <span class="input-icon">🕒</span>
+                <view class="form-value">创建时间：{{ formatDate(currentUser.time) || '未知' }}</view>
+              </div>
+            </view>
+          </view>
+
+          <view v-else class="edit-form">
+            <view class="form-item" v-if="dialogMode === 'add'">
+              <div class="input-with-icon">
+                <span class="input-icon">👤</span>
+                <input 
+                  v-model="currentUser.username" 
+                  class="form-input" 
+                  placeholder="请输入用户名"
+                />
+              </div>
+            </view>
+            <view class="form-item" v-if="dialogMode === 'add'">
+              <div class="input-with-icon">
+                <span class="input-icon">🔒</span>
+                <input 
+                  v-model="currentUser.password" 
+                  class="form-input" 
+                  type="password"
+                  placeholder="请输入密码"
+                />
+              </div>
+            </view>
+            
+            <view class="form-item">
+              <div class="input-with-icon">
+                <span class="input-icon">📝</span>
+                <input 
+                  v-model="currentUser.name" 
+                  class="form-input" 
+                  placeholder="请输入真实姓名"
+                />
+              </div>
+            </view>
+            <view class="form-item">
+              <div class="input-with-icon">
+                <span class="input-icon">⚥</span>
+                <view class="form-input picker-input" @click="showSexPicker = true">
+                  {{ currentUser.sex || '请选择性别' }}
+                </view>
+                <picker-view 
+                  v-if="showSexPicker" 
+                  :value="[sexIndex]" 
+                  @change="handlePickerViewChange('sex', $event)"
+                  class="picker-view"
+                >
+                  <picker-view-column>
+                    <view v-for="(item, index) in sexOptions" :key="index">
+                      {{ item }}
+                    </view>
+                  </picker-view-column>
+                </picker-view>
+              </div>
+            </view>
+            <view class="form-item">
+              <div class="input-with-icon">
+                <span class="input-icon">📧</span>
+                <input 
+                  v-model="currentUser.email" 
+                  class="form-input" 
+                  type="email"
+                  placeholder="请输入邮箱"
+                />
+              </div>
+            </view>
+            <view class="form-item">
+              <div class="input-with-icon">
+                <span class="input-icon">📱</span>
+                <input 
+                  v-model="currentUser.tel" 
+                  class="form-input" 
+                  type="number" 
+                  placeholder="请输入手机号"
+                />
+              </div>
+            </view>
+            <view class="form-item">
+              <div class="input-with-icon">
+                <span class="input-icon">🎭</span>
+                <view class="form-input picker-input" @click="showRolePicker = true">
+                  {{ getRoleLabel(currentUser.role) || '请选择角色' }}
+                </view>
+                <picker-view 
+                  v-if="showRolePicker" 
+                  :value="[roleIndex]" 
+                  @change="handlePickerViewChange('role', $event)"
+                  class="picker-view"
+                >
+                  <picker-view-column>
+                    <view v-for="(item, index) in roleOptions" :key="index">
+                      {{ item.label }}
+                    </view>
+                  </picker-view-column>
+                </picker-view>
+              </div>
+            </view>
+          </view>
+        </view>
+        <view class="popup-footer" v-if="dialogMode !== 'view'">
+          <button class="popup-btn cancel" @click="closeDialog">取消</button>
+          <button class="popup-btn confirm" @click="handleSubmit">确认{{ dialogMode === 'add' ? '新增' : '修改' }}</button>
+        </view>
+        <view class="popup-footer" v-if="dialogMode === 'view'">
+          <button class="popup-btn confirm" @click="closeDialog">关闭</button>
+        </view>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue';
+import { getUserPage, deleteUser, updateUser, addUser, type User } from '@/api/user.uts';
+import Pagination from '@/components/Pagination.uvue';
+
+const defaultAvatar = "https://img.tuxiangyan.com/uploads/allimg/230530/1_05300UH241a.jpg";
+
+const users = ref<User[]>([]);
+const searchKeyword = ref('');
+const currentPage = ref(1);
+const pageSize = ref(5);
+const jumpPage = ref<number | null>(null);
+const loading = ref(false);
+const currentFilter = ref<'all' | 'user' | 'vip' | 'admin'>('all');
+const popupVisible = ref(false);
+const showDeletePopup = ref(false);
+const dialogMode = ref<'add' | 'edit' | 'view'>('add');
+const dialogTitle = ref('新增用户');
+const currentUser = ref<Partial<User>>({});
+const deleteUserId = ref<number | null>(null);
+const sexIndex = ref(0);
+const roleIndex = ref(0);
+const showSexPicker = ref(false);
+const showRolePicker = ref(false);
+
+const roleMap = ref<Record<string, string>>({
+  user: '普通用户',
+  admin: '管理员'
+});
+
+const sexOptions = ref(['男', '女']);
+
+const roleOptions = ref([
+  { value: 'user', label: '普通用户' },
+  { value: 'admin', label: '管理员' }
+]);
+
+const handlePickerChange = (field: string, event: any) => {
+  const value = event.detail.value;
+  if (field === 'sex') {
+    currentUser.value.sex = sexOptions.value[value];
+  } else if (field === 'role') {
+    currentUser.value.role = roleOptions.value[value].value;
+  }
+};
+
+const handlePickerViewChange = (field: string, event: any) => {
+  const value = event.detail.value[0];
+  if (field === 'sex') {
+    sexIndex.value = value;
+    currentUser.value.sex = sexOptions.value[value];
+    showSexPicker.value = false;
+  } else if (field === 'role') {
+    roleIndex.value = value;
+    currentUser.value.role = roleOptions.value[value].value;
+    showRolePicker.value = false;
+  }
+};
+
+const getRoleLabel = (role: string | undefined) => {
+  if (!role) return '';
+  const roleOption = roleOptions.value.find(item => item.value === role);
+  return roleOption ? roleOption.label : '';
+};
+
+const filteredUsers = computed(() => {
+  let filtered = [...users.value];
+  if (searchKeyword.value) {
+    const keyword = searchKeyword.value.toLowerCase();
+    filtered = filtered.filter(user => 
+      user.username?.toLowerCase().includes(keyword) ||
+      user.id?.toString().includes(keyword)
+    );
+  }
+  if (currentFilter.value !== 'all') {
+    filtered = filtered.filter(user => user.role === currentFilter.value);
+  }
+  return filtered;
+});
+
+const totalPages = computed(() => {
+  return Math.ceil(filteredUsers.value.length / pageSize.value);
+});
+
+const currentPageData = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredUsers.value.slice(start, end);
+});
+
+const setFilter = (filter: 'all' | 'user' | 'admin') => {
+  currentFilter.value = filter;
+  currentPage.value = 1;
+};
+
+const truncateText = (text: string, maxLength: number): string => {
+  if (!text) return '';
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength) + '...';
+};
+
+const formatDate = (dateStr: string | undefined) => {
+  if (!dateStr) return '未知';
+  try {
+    const date = new Date(dateStr);
+    return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+  } catch {
+    return '未知';
+  }
+};
+
+const loadUserList = async () => {
+  try {
+    loading.value = true;
+    const res = await getUserPage(currentPage.value, pageSize.value, searchKeyword.value);
+    users.value = res.records || [];
+    currentPage.value = 1;
+  } catch (error: any) {
+    uni.showToast({ title: error.message || '获取用户失败', icon: 'none' });
+  } finally {
+    loading.value = false;
+  }
+};
+
+const openDialog = (mode: 'add' | 'edit' | 'view', user?: Partial<User>) => {
+  dialogMode.value = mode;
+  currentUser.value = user ? { ...user } : { sex: '男', role: 'user' };
+  
+  // 设置性别索引
+  if (currentUser.value.sex) {
+    const sexIdx = sexOptions.value.indexOf(currentUser.value.sex);
+    sexIndex.value = sexIdx !== -1 ? sexIdx : 0;
+  } else {
+    sexIndex.value = 0;
+  }
+  
+  // 设置角色索引
+  if (currentUser.value.role) {
+    const roleIdx = roleOptions.value.findIndex(item => item.value === currentUser.value.role);
+    roleIndex.value = roleIdx !== -1 ? roleIdx : 0;
+  } else {
+    roleIndex.value = 0;
+  }
+  
+  if (mode === 'add') dialogTitle.value = '新增用户';
+  if (mode === 'edit') dialogTitle.value = '编辑用户';
+  if (mode === 'view') dialogTitle.value = '用户详情';
+  popupVisible.value = true;
+};
+
+const closeDialog = () => {
+  popupVisible.value = false;
+  currentUser.value = {};
+  dialogMode.value = 'add';
+};
+
+const handleSubmit = async () => {
+  try {
+    if (dialogMode.value === 'add') {
+      if (!currentUser.value.username) {
+        uni.showToast({ title: '用户名不能为空', icon: 'none' });
+        return;
+      }
+      if (!currentUser.value.password) {
+        uni.showToast({ title: '密码不能为空', icon: 'none' });
+        return;
+      }
+      await addUser(currentUser.value);
+      uni.showToast({ title: '新增成功', icon: 'success' });
+    } else if (dialogMode.value === 'edit') {
+      if (!currentUser.value.id) {
+        uni.showToast({ title: '用户ID不能为空', icon: 'none' });
+        return;
+      }
+      await updateUser(currentUser.value as User);
+      uni.showToast({ title: '修改成功', icon: 'success' });
+    }
+    closeDialog();
+    loadUserList();
+  } catch (error: any) {
+    uni.showToast({ title: error.message || '操作失败', icon: 'none' });
+  }
+};
+
+const handleSearch = () => {
+  clearTimeout((window as any).searchTimer);
+  (window as any).searchTimer = setTimeout(() => {
+    currentPage.value = 1;
+    loadUserList();
+  }, 300);
+};
+
+const prevPage = () => {
+  if (currentPage.value > 1) currentPage.value--;
+};
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) currentPage.value++;
+};
+
+const jumpToPage = () => {
+  if (!jumpPage.value || jumpPage.value < 1 || jumpPage.value > totalPages.value) {
+    uni.showToast({ title: `请输入1-${totalPages.value}之间的页码`, icon: 'none' });
+    return;
+  }
+  currentPage.value = jumpPage.value;
+  jumpPage.value = null;
+};
+
+const showDeleteConfirm = (userId: number) => {
+  deleteUserId.value = userId;
+  showDeletePopup.value = true;
+};
+
+const confirmDelete = async () => {
+  if (!deleteUserId.value) return;
+  try {
+    await deleteUser(deleteUserId.value);
+    uni.showToast({ title: '删除成功', icon: 'success' });
+    showDeletePopup.value = false;
+    loadUserList();
+  } catch (error: any) {
+    uni.showToast({ title: error.message || '删除失败', icon: 'none' });
+  }
+};
+
+onMounted(() => {
+  loadUserList();
+});
+</script>
+
+<style scoped>
+/* 全局容器：统一盒模型，确保所有组件基于相同的宽度基准 */
+.user-list-page {
+  padding: 24rpx;
+  min-height: 100vh;
+  background: #f5f5f5;
+  box-sizing: border-box; /* 关键：内边距不影响宽度计算 */
+}
+
+/* 所有核心组件统一宽度+盒模型 */
+.top-bar, .search-container, .filter-tabs, .loading, .user-container, .pagination {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 24rpx;
+}
+
+/* 顶部按钮 */
+.add-btn {
+  background: #1890ff;
+  color: #fff;
+  border: none;
+  border-radius: 12rpx;
+  padding: 0 32rpx;
+  height: 80rpx;
+  font-size: 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  width: 100%;
+}
+
+/* 搜索框 */
+.search-box {
+  position: relative;
+  width: 100%;
+}
+
+.search-input {
+  width: 100%;
+  height: 80rpx;
+  padding: 0 32rpx 0 48rpx;
+  border: none;
+  border-radius: 12rpx;
+  background: #fff;
+  font-size: 28rpx;
+  color: #333;
+  box-sizing: border-box;
+}
+
+.search-clear {
+  position: absolute;
+  right: 24rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 28rpx;
+  color: #999;
+  cursor: pointer;
+}
+
+/* 筛选栏 */
+.filter-tabs {
+  display: flex;
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 8rpx;
+  gap: 8rpx;
+  overflow-x: auto;
+}
+
+.filter-tab {
+  flex: 1;
+  white-space: nowrap;
+  text-align: center;
+  padding: 20rpx;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filter-tab.active {
+  background: #1890ff;
+  color: #fff;
+  font-weight: 500;
+}
+
+/* 加载状态 */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 200rpx 0;
+  margin-bottom: 0;
+}
+
+.spinner {
+  width: 48rpx;
+  height: 48rpx;
+  border: 4rpx solid #e0e0e0;
+  border-top-color: #1890ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16rpx;
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 用户列表 */
+.user-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+  margin-bottom: 0;
+}
+
+.user-item {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  display: flex;
+  flex-direction: row !important;
+  justify-content: flex-start;
+  align-items: center;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+  gap: 24rpx;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.user-info {
+  flex: 1;
+  display: flex;
+  gap: 24rpx;
+  cursor: pointer;
+  min-width: 0;
+  overflow: hidden;
+  align-items: flex-start;
+  margin-left: 16rpx;
+}
+
+.user-avatar {
+  width: 100rpx;
+  height: 100rpx;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #f5f5f5;
+}
+
+.user-main {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.user-username {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8rpx;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+.role-tag {
+  display: inline-block;
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.role-normal {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+.role-vip {
+  background: #fff7e6;
+  color: #faad14;
+}
+
+.role-admin {
+  background: #fff2f0;
+  color: #ff4d4f;
+}
+
+.user-time {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  font-size: 22rpx;
+  color: #666;
+  text-align: right;
+  flex-shrink: 0;
+  min-width: 200rpx;
+  white-space: nowrap;
+}
+
+.user-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 32rpx;
+  flex-shrink: 0;
+  width: 140rpx;
+  align-items: flex-end;
+  margin-right: 24rpx;
+}
+
+.action-btn {
+  border: none;
+  border-radius: 8rpx;
+  padding: 0 16rpx;
+  height: 60rpx;
+  font-size: 24rpx;
+  width: 100%;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.view-btn {
+  background: #1890ff;
+  color: #fff;
+}
+
+.edit-btn {
+  background: #52c41a;
+  color: #fff;
+}
+
+.delete-btn {
+  background: #ff4d4f;
+  color: #fff;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 200rpx 0;
+  color: #999;
+  width: 100%;
+}
+
+.empty-icon {
+  font-size: 96rpx;
+  margin-bottom: 24rpx;
+}
+
+.empty-text {
+  font-size: 28rpx;
+}
+
+
+
+/* 删除弹窗 */
+.delete-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialog-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.dialog-content {
+  position: relative;
+  width: 650rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  overflow: hidden;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.dialog-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.dialog-close {
+  font-size: 36rpx;
+  color: #999;
+  cursor: pointer;
+  padding: 8rpx;
+}
+
+.dialog-body {
+  padding: 40rpx 30rpx;
+}
+
+.delete-desc {
+  font-size: 28rpx;
+  color: #666;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.dialog-footer {
+  display: flex;
+  gap: 16rpx;
+  padding: 20rpx 30rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.dialog-btn {
+  flex: 1;
+  height: 80rpx;
+  border: none;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+}
+
+.dialog-btn.cancel {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.dialog-btn.confirm {
+  background: #ff4d4f;
+  color: #fff;
+}
+
+/* 自定义弹窗 */
+.custom-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popup-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.popup-content {
+  position: relative;
+  width: 800rpx;
+  max-height: 85vh;
+  background: #fff;
+  border-radius: 20rpx;
+  overflow-y: auto;
+  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.15);
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+  position: sticky;
+  top: 0;
+  background: #fff;
+}
+
+.popup-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.popup-close {
+  font-size: 36rpx;
+  color: #999;
+  cursor: pointer;
+  padding: 8rpx;
+}
+
+.popup-body {
+  padding: 30rpx;
+}
+
+.form-item {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 32rpx;
+  gap: 12rpx;
+}
+
+.form-label {
+  font-size: 30rpx;
+  color: #333;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  text-align: left;
+}
+
+.form-label.with-icon {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.form-label .icon {
+  font-size: 30rpx;
+  width: 30rpx;
+  text-align: left;
+  flex-shrink: 0;
+}
+
+.form-input {
+  height: 88rpx;
+  padding: 0 24rpx;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  transition: all 0.3s ease;
+  background: #f8f8f8;
+}
+
+.input-with-icon {
+  position: relative;
+  width: 100%;
+}
+
+.input-icon {
+  position: absolute;
+  left: 24rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 30rpx;
+  color: #999;
+  z-index: 1;
+}
+
+.form-input {
+  height: 88rpx;
+  padding: 0 24rpx 0 72rpx;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  transition: all 0.3s ease;
+  background: #f8f8f8;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  border-color: #1890ff;
+  background: #fff;
+  box-shadow: 0 0 0 2rpx rgba(24, 144, 255, 0.2);
+}
+
+.radio-group-container {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+}
+
+.radio-group-container .input-icon {
+  position: static;
+  transform: none;
+}
+
+.picker-input {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-right: 24rpx;
+  color: #333;
+  background: #f8f8f8;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 12rpx;
+  height: 88rpx;
+  padding-left: 72rpx;
+  font-size: 28rpx;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+  padding-top: 25rpx;
+}
+
+.picker-input::after {
+  content: '▼';
+  position: absolute;
+  right: 24rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 20rpx;
+  color: #999;
+  pointer-events: none;
+}
+
+.picker-view {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 400rpx;
+  background: #fff;
+  z-index: 9999;
+  border-top-left-radius: 20rpx;
+  border-top-right-radius: 20rpx;
+  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.1);
+}
+
+.picker-view-column view {
+  height: 80rpx;
+  font-size: 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.form-value {
+  font-size: 28rpx;
+  color: #333;
+  padding: 0 24rpx;
+  background: #f8f8f8;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 12rpx;
+  height: 88rpx;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 25rpx;
+}
+
+.radio-group {
+  display: flex;
+  gap: 40rpx;
+  padding: 10rpx 0;
+}
+
+.radio-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 28rpx;
+}
+
+.popup-footer {
+  display: flex;
+  gap: 20rpx;
+  padding: 24rpx 32rpx;
+  border-top: 1rpx solid #f0f0f0;
+  background: #fafafa;
+  border-bottom-left-radius: 20rpx;
+  border-bottom-right-radius: 20rpx;
+}
+
+.popup-btn {
+  flex: 1;
+  height: 88rpx;
+  border: none;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+}
+
+.popup-btn:hover {
+  transform: translateY(-2rpx);
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+}
+
+.popup-btn.cancel {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.popup-btn.confirm {
+  background: #1890ff;
+  color: #fff;
+}
+
+.popup-btn.confirm:hover {
+  background: #40a9ff;
+}
+
+/* 响应式适配：保持分页占满一行，不滚动 */
+@media (max-width: 750rpx) {
+  .pagination-top {
+    flex-direction: row !important;
+    gap: 12rpx;
+  }
+  
+  .page-btn {
+    height: 68rpx;
+    font-size: 26rpx;
+    padding: 0 16rpx;
+  }
+  
+  .jump-input {
+    height: 68rpx;
+    width: 80rpx;
+    font-size: 26rpx;
+  }
+  
+  .jump-btn {
+    height: 68rpx;
+    font-size: 26rpx;
+    padding: 0 16rpx;
+  }
+  
+  .pagination-bottom {
+    flex-direction: row !important;
+    font-size: 24rpx;
+  }
+  
+  .dialog-content, .popup-content {
+    width: 90%;
+    margin: 0 auto;
+  }
+  
+  .user-item {
+    flex-direction: row !important;
+    flex-wrap: wrap;
+  }
+  
+  .user-actions {
+    flex-direction: row;
+    width: 100%;
+    justify-content: flex-end;
+    gap: 16rpx;
+    margin-top: 16rpx;
+    margin-right: 0;
+  }
+  
+  .action-btn {
+    flex: 1;
+    max-width: 140rpx;
+  }
+  
+  .user-time {
+    min-width: auto;
+    text-align: left;
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+}
+</style>

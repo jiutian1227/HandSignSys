@@ -1,0 +1,101 @@
+import type { ApiResult } from '@/common/request.uts';
+
+// ======================
+// 🔥 统一配置接口地址 (只需要改这里)
+// ======================
+const API_BASE = 'https://springboot.fanzengxie.icu';
+
+// 上传图片
+const UPLOAD_IMAGE_URL = `${API_BASE}/files/upload`;
+// 富文本编辑器上传
+const EDITOR_UPLOAD_URL = `${API_BASE}/files/editor/upload`;
+// 文件下载前缀
+const FILE_DOWNLOAD_PREFIX = `${API_BASE}/files`;
+
+/**
+ * 上传图片到服务器
+ * @param filePath 本地图片临时路径
+ * @returns 服务器返回的图片URL
+ */
+export function uploadImage(filePath: string): Promise<ApiResult<string>> {
+  return new Promise((resolve, reject) => {
+    uni.uploadFile({
+      url: UPLOAD_IMAGE_URL, // 使用统一常量
+      filePath: filePath,
+      name: 'file',
+      header: {
+        'Accept': 'application/json'
+      },
+      success: (res) => {
+        try {
+          const data = JSON.parse(res.data);
+          if (data.code === '200' || data.code === 200) {
+            resolve(data);
+          } else {
+            reject(new Error(`上传失败：${data.msg || '接口返回错误'}`));
+          }
+        } catch (err) {
+          reject(new Error(`解析失败：${(err as Error).message}`));
+        }
+      },
+      fail: (err) => {
+        reject(new Error(`网络异常：${err.errMsg}`));
+      }
+    });
+  });
+}
+
+/**
+ * 下载并打开文件
+ * @param flag 文件标识
+ */
+export function downloadFile(flag: string) {
+  uni.downloadFile({
+    url: `${FILE_DOWNLOAD_PREFIX}/${flag}`, // 使用统一常量
+    success: (res) => {
+      if (res.statusCode === 200) {
+        uni.openDocument({
+          filePath: res.tempFilePath,
+          success: () => {
+            uni.showToast({ title: '文件打开成功', icon: 'success' });
+          },
+          fail: (err) => {
+            uni.showToast({ title: `打开失败：${err.errMsg}`, icon: 'none' });
+          }
+        });
+      }
+    },
+    fail: (err) => {
+      uni.showToast({ title: `下载失败：${err.errMsg}`, icon: 'none' });
+    }
+  });
+}
+
+/**
+ * 富文本编辑器图片上传
+ * @param filePath 本地图片路径
+ * @returns 富文本格式结果
+ */
+export function editorUploadImage(filePath: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    uni.uploadFile({
+      url: EDITOR_UPLOAD_URL, // 使用统一常量
+      filePath: filePath,
+      name: 'file',
+      header: {
+        'Accept': 'application/json'
+      },
+      success: (res) => {
+        try {
+          const data = JSON.parse(res.data);
+          resolve(data);
+        } catch (err) {
+          reject(new Error(`解析失败：${(err as Error).message}`));
+        }
+      },
+      fail: (err) => {
+        reject(new Error(`上传失败：${err.errMsg}`));
+      }
+    });
+  });
+}

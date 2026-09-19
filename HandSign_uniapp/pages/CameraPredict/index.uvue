@@ -1,0 +1,711 @@
+<template>
+  <view class="ai-container">
+    <view class="bg-decor">
+      <view class="bg-mask"></view>
+    </view>
+
+    <view class="top-decor">
+      <view class="top-icon-wrap">
+        <text class="hand-icon">✋</text>
+      </view>
+    </view>
+
+    <view class="main-card">
+      <view class="title-wrap">
+        <text class="main-title">手语AI实时识别</text>
+        <text class="sub-title">智能解析 · 精准识别</text>
+      </view>
+
+      <view class="form-item">
+        <view class="item-label">
+          <text class="icon-text">⚙️</text>
+          <text class="label-text">识别模型</text>
+        </view>
+        <picker mode="selector" :range="state.weight_items" :range-key="'label'" @change="onModelChange" class="custom-picker">
+          <view class="picker-wrap-horizontal">
+            <text class="picker-label">{{ state.selectedModel.label }}</text>
+            <text class="arrow-icon-horizontal">→</text>
+          </view>
+        </picker>
+      </view>
+
+      <view class="form-item">
+        <view class="item-label">
+          <text class="icon-text">%</text>
+          <text class="label-text">识别置信度</text>
+        </view>
+        <view class="conf-btns-horizontal">
+          <button class="conf-btn" @click="setConf(-1)">−</button>
+          <text class="conf-value">{{ state.conf.toFixed(2) }}</text>
+          <button class="conf-btn" @click="setConf(1)">+</button>
+        </view>
+        <text class="conf-tip">每次调整 0.05，范围 0.10 ~ 1.00</text>
+      </view>
+
+      <view class="reset-btn-wrap">
+        <button class="reset-btn" @click="resetToDefault">
+          <text class="icon-text">↺</text>
+          <text class="reset-text">恢复默认值</text>
+        </button>
+      </view>
+
+      <view class="action-btn-group-horizontal">
+        <button 
+          class="action-btn-high primary" 
+          @click="startCamera" 
+          :disabled="state.isCameraRunning"
+        >
+          <text class="icon-text" v-if="!state.isCameraRunning">📷</text>
+          <text class="loading-icon" v-else>◯</text>
+          <text class="btn-text">{{ state.isCameraRunning ? '识别中' : '启动识别' }}</text>
+        </button>
+        <button 
+          class="action-btn-high cancel" 
+          @click="stopCamera" 
+          v-if="state.isCameraRunning"
+        >
+          <text class="icon-text">✕</text>
+          <text class="btn-text">停止识别</text>
+        </button>
+      </view>
+    </view>
+
+    <view class="video-wrap" v-if="state.isCameraRunning">
+      <view class="video-header">
+        <text class="video-title">实时识别画面</text>
+        <text class="video-subtitle">模型：{{ state.selectedModel.label }} | 置信度：{{ state.conf.toFixed(2) }}</text>
+      </view>
+      <view class="video-container">
+      
+        <!-- 摄像头正常显示 -->
+        <camera 
+          v-if="state.isCameraRunning"
+          class="real-camera"
+          device-position="front"
+          flash="off"
+        ></camera>
+
+        <!-- 识别结果覆盖显示 -->
+        <image 
+          :src="state.videoStreamUrl" 
+          class="video-img"
+          mode="aspectFit" 
+        />
+        
+        <view class="loading-mask" v-if="!state.videoStreamUrl">
+          <text class="loading-spin">◯</text>
+          <text class="loading-text">正在初始化摄像头...</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="status-wrap" :class="getStatusClass()">
+      <text class="status-icon" :style="{ color: getStatusColor() }">{{ getStatusIcon() }}</text>
+      <text class="status-text">{{ state.statusMsg }}</text>
+    </view>
+
+    <view class="bottom-decor">
+    </view>
+  </view>
+</template>
+
+<script setup lang="uts">
+import { reactive, onMounted, onUnmounted } from 'vue';
+import { getUserInfo } from '@/utils/userInfo.uts';
+import { 
+  getModelList, 
+  predictFrame, 
+  finalizeCameraSession, 
+  formatDateTime 
+} from '@/common/aiRecognitionApi.uts';
+
+const DEFAULT_CONFIG = {
+  DEFAULT_MODEL: { label: 'YOLOv8n 轻量模型', value: 'yolov8n.pt' },
+  DEFAULT_CONF: 0.7,
+  STEP: 0.05,
+  MIN_CONF: 0.1,
+  MAX_CONF: 1.0,
+  STATUS_TYPE: {
+    SUCCESS: 'success',
+    INFO: 'info',
+    WARNING: 'warning',
+    ERROR: 'error'
+  }
+};
+
+interface WeightItem {
+  label: string;
+  value: string;
+}
+
+const state = reactive({
+  weight_items: [] as WeightItem[],
+  selectedModel: { ...DEFAULT_CONFIG.DEFAULT_MODEL },
+  conf: DEFAULT_CONFIG.DEFAULT_CONF,
+  isCameraRunning: false,
+  videoStreamUrl: '',
+  statusMsg: '就绪 - 已加载默认配置',
+  statusType: DEFAULT_CONFIG.STATUS_TYPE.INFO,
+  username: 'test_user',
+  sessionId: ''
+});
+
+let frameTimer: any = null;
+let cameraContext: any = null;
+let isProcessing = false; // 防重复请求
+
+onMounted(() => {
+  initModelList();
+  cameraContext = uni.createCameraContext();
+});
+
+onUnmounted(() => {
+  stopCamera();
+});
+
+const initModelList = () => {
+  state.statusMsg = '正在加载模型列表...';
+  getModelList().then((res: any) => {
+    try {
+      if (res?.weight_items?.length) {
+        state.weight_items = res.weight_items as WeightItem[];
+        const defaultModel = state.weight_items.find(item => item.value === DEFAULT_CONFIG.DEFAULT_MODEL.value);
+        state.selectedModel = defaultModel || state.weight_items[0];
+        state.statusMsg = `加载完成：${state.selectedModel.label}`;
+      } else {
+        state.weight_items = [DEFAULT_CONFIG.DEFAULT_MODEL];
+      }
+    } catch (e) {
+      state.weight_items = [DEFAULT_CONFIG.DEFAULT_MODEL];
+    }
+  }).catch(() => {
+    state.weight_items = [DEFAULT_CONFIG.DEFAULT_MODEL];
+  });
+};
+
+const onModelChange = (e: any) => {
+  const index = e.detail.value;
+  state.selectedModel = state.weight_items[index];
+  state.statusMsg = `已切换：${state.selectedModel.label}`;
+};
+
+const setConf = (dir: number) => {
+  let newConf = state.conf + dir * DEFAULT_CONFIG.STEP;
+  newConf = Math.max(DEFAULT_CONFIG.MIN_CONF, Math.min(DEFAULT_CONFIG.MAX_CONF, newConf));
+  state.conf = newConf;
+  state.statusMsg = `置信度：${newConf.toFixed(2)}`;
+};
+
+const resetToDefault = () => {
+  state.selectedModel = { ...DEFAULT_CONFIG.DEFAULT_MODEL };
+  state.conf = DEFAULT_CONFIG.DEFAULT_CONF;
+  state.statusMsg = '已恢复默认配置';
+  uni.showToast({ title: '已恢复默认', icon: 'success' });
+};
+
+// ======================
+// 启动摄像头
+// ======================
+const startCamera = () => {
+  if (!state.selectedModel?.value) {
+    uni.showToast({ title: '请选择模型', icon: 'none' });
+    return;
+  }
+
+  state.isCameraRunning = true;
+  state.videoStreamUrl = '';
+  state.sessionId = 'sess_' + Date.now();
+  state.statusMsg = '正在启动实时识别...';
+
+  startFrameLoop();
+};
+
+// ======================
+// 核心：防重复请求 + 降低帧率
+// ======================
+function startFrameLoop() {
+  if (frameTimer) clearInterval(frameTimer);
+
+  frameTimer = setInterval(() => {
+    if (!state.isCameraRunning || isProcessing) return;
+    isProcessing = true;
+
+    cameraContext.takePhoto({
+      quality: 'low',
+      success: (res) => {
+        uni.getFileSystemManager().readFile({
+          filePath: res.tempImagePath,
+          encoding: 'base64',
+          success: (data) => {
+            predictFrame({
+              weight: state.selectedModel.value,
+              conf: parseFloat(state.conf.toFixed(2)),
+              frame: data.data,
+              sessionId: state.sessionId
+            }).then((resp: any) => {
+              if (resp?.status === 200) {
+                state.videoStreamUrl = 'data:image/jpeg;base64,' + resp.outFrame;
+                state.statusMsg = '✅ 实时识别中';
+              }
+            }).catch(() => {
+              // 出错不崩溃
+            }).finally(() => {
+              isProcessing = false;
+            });
+          },
+          fail: () => {
+            isProcessing = false;
+          }
+        });
+      },
+      fail: () => {
+        isProcessing = false;
+      }
+    });
+  }, 500); // 👈 500ms 一次，绝对不超时
+}
+
+// ======================
+// 停止摄像头
+// ======================
+const stopCamera = () => {
+  state.isCameraRunning = false;
+  state.videoStreamUrl = '';
+
+  if (frameTimer) {
+    clearInterval(frameTimer);
+    frameTimer = null;
+  }
+
+  finalizeCameraSession({
+    sessionId: state.sessionId,
+    username: getUserInfo()?.username || 'test_user',
+    weight: state.selectedModel.value,
+     conf: parseFloat(state.conf.toFixed(2)),
+    startTime: formatDateTime(new Date())
+  }).finally(() => {
+    state.statusMsg = '✅ 识别已停止';
+  });
+};
+
+const getStatusClass = () => {
+  switch (state.statusType) {
+    case DEFAULT_CONFIG.STATUS_TYPE.SUCCESS: return 'status-success';
+    case DEFAULT_CONFIG.STATUS_TYPE.ERROR: return 'status-error';
+    case DEFAULT_CONFIG.STATUS_TYPE.WARNING: return 'status-warning';
+    default: return 'status-info';
+  }
+};
+
+const getStatusColor = () => {
+  switch (state.statusType) {
+    case DEFAULT_CONFIG.STATUS_TYPE.SUCCESS: return '#4cd964';
+    case DEFAULT_CONFIG.STATUS_TYPE.ERROR: return '#ff3b30';
+    case DEFAULT_CONFIG.STATUS_TYPE.WARNING: return '#ff9500';
+    default: return '#667eea';
+  }
+};
+
+const getStatusIcon = () => {
+  switch (state.statusType) {
+    case DEFAULT_CONFIG.STATUS_TYPE.SUCCESS: return '✓';
+    case DEFAULT_CONFIG.STATUS_TYPE.ERROR: return '✕';
+    case DEFAULT_CONFIG.STATUS_TYPE.WARNING: return '⚠️';
+    default: return 'ℹ️';
+  }
+};
+</script>
+
+
+<style scoped>
+.ai-container {
+  padding: 0;
+  background: #f5f7fa;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.bg-decor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  background: radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+}
+.bg-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.98) 100%);
+}
+
+.top-decor {
+  height: 140rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-bottom-left-radius: 40rpx;
+  border-bottom-right-radius: 40rpx;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.top-icon-wrap {
+  width: 80rpx;
+  height: 80rpx;
+  background: rgba(255,255,255,0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hand-icon {
+  font-size: 40rpx;
+  color: #fff;
+}
+
+.main-card {
+  background: #fff;
+  margin: -60rpx 20rpx 20rpx;
+  border-radius: 24rpx;
+  padding: 40rpx 30rpx;
+  box-shadow: 0 12rpx 32rpx rgba(102, 126, 234, 0.12);
+  position: relative;
+  z-index: 10;
+  border: 1rpx solid rgba(102, 126, 234, 0.08);
+}
+
+.title-wrap {
+  text-align: center;
+  margin-bottom: 50rpx;
+}
+.main-title {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #333;
+  display: block;
+  letter-spacing: 2rpx;
+}
+.sub-title {
+  font-size: 26rpx;
+  color: #999;
+  display: block;
+  margin-top: 10rpx;
+}
+
+.form-item {
+  margin-bottom: 40rpx;
+}
+.item-label {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-bottom: 15rpx;
+}
+.icon-text {
+  font-size: 20rpx;
+}
+.label-text {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.custom-picker {
+  width: 100%;
+}
+.picker-wrap-horizontal {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22rpx 24rpx;
+  background: #f8f9fa;
+  border-radius: 16rpx;
+  border: 1rpx solid #eee;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+.picker-wrap-horizontal:active {
+  background: #f0f5ff;
+  border-color: #e0e7ff;
+}
+.picker-label {
+  font-size: 28rpx;
+  color: #333;
+  flex: 1;
+}
+.arrow-icon-horizontal {
+  font-size: 24rpx;
+  color: #999;
+  margin-left: 20rpx;
+}
+
+.conf-btns-horizontal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40rpx;
+  margin: 10rpx 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+.conf-btn {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  font-size: 42rpx;
+  line-height: 88rpx;
+  text-align: center;
+  padding: 0;
+  border: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.conf-btn:active {
+  transform: scale(0.95);
+  opacity: 0.9;
+}
+.conf-value {
+  font-size: 42rpx;
+  font-weight: 700;
+  color: #667eea;
+  min-width: 120rpx;
+  text-align: center;
+  text-shadow: 0 2rpx 4rpx rgba(102, 126, 234, 0.1);
+}
+.conf-tip {
+  font-size: 22rpx;
+  color: #999;
+  text-align: center;
+  display: block;
+  margin-top: 8rpx;
+}
+
+.reset-btn-wrap {
+  text-align: center;
+  margin-bottom: 30rpx;
+}
+.reset-btn {
+  background: transparent;
+  border: 1rpx solid #667eea;
+  color: #667eea;
+  padding: 14rpx 36rpx;
+  border-radius: 30rpx;
+  font-size: 24rpx;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin: 0 auto;
+  transition: all 0.2s ease;
+}
+.reset-btn:active {
+  background: #f0f5ff;
+}
+.reset-text {
+  font-size: 24rpx;
+}
+
+.action-btn-group-horizontal {
+  display: flex;
+  gap: 20rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+.action-btn-high {
+  flex: 1;
+  height: 140rpx;
+  border-radius: 20rpx;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8rpx 20rpx rgba(0,0,0,0.15);
+  font-size: 36rpx;
+  font-weight: 700;
+  padding: 0;
+}
+.action-btn-high:active {
+  transform: scale(0.98);
+  opacity: 0.95;
+}
+.primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+.cancel {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff3b30 100%);
+}
+.loading-icon {
+  font-size: 32rpx;
+  color: #fff;
+  animation: spin 1s linear infinite;
+}
+.btn-text {
+  font-size: 36rpx;
+  color: #fff;
+  font-weight: 700;
+}
+
+/* 摄像头容器 */
+.video-wrap {
+  margin: 0 20rpx 20rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 10;
+}
+.video-header {
+  padding: 24rpx 30rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+.video-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+  display: block;
+}
+.video-subtitle {
+  font-size: 22rpx;
+  color: #999;
+  display: block;
+  margin-top: 4rpx;
+}
+.video-container {
+  width: 100%;
+  height: 500rpx;
+  background: #000;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 修复：正常显示的摄像头 */
+.real-camera {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  object-fit: cover;
+}
+
+.video-img {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  left: 0;
+  top: 0;
+  z-index: 2;
+}
+
+.loading-mask {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20rpx;
+  z-index: 9;
+}
+.loading-spin {
+  font-size: 36rpx;
+  color: #667eea;
+  animation: spin 1s linear infinite;
+}
+.loading-text {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.status-wrap {
+  margin: 0 20rpx 30rpx;
+  padding: 24rpx 30rpx;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.05);
+}
+.status-success { background: #f0fdf4; }
+.status-error { background: #fff5f5; }
+.status-warning { background: #fffbe6; }
+.status-info { background: #eff6ff; }
+.status-icon {
+  font-size: 20rpx;
+  flex-shrink: 0;
+}
+.status-text {
+  font-size: 26rpx;
+  flex: 1;
+}
+
+.bottom-decor {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  padding: 20rpx 0 30rpx;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 375px) {
+  .main-card {
+    margin: -50rpx 15rpx 15rpx;
+    padding: 30rpx 20rpx;
+  }
+  .video-container {
+    height: 420rpx;
+  }
+  .action-btn-high {
+    height: 120rpx;
+  }
+  .conf-btns-horizontal {
+    gap: 30rpx;
+  }
+  .conf-btn {
+    width: 76rpx;
+    height: 76rpx;
+  }
+  .conf-value {
+    font-size: 36rpx;
+  }
+  .btn-text {
+    font-size: 32rpx;
+  }
+}
+@media (min-width: 414px) {
+  .video-container {
+    height: 550rpx;
+  }
+  .action-btn-high {
+    height: 150rpx;
+  }
+}
+</style>

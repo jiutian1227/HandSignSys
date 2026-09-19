@@ -1,0 +1,341 @@
+<template>
+  <view class="functions">
+    <view class="page-header">
+      <text class="page-title">识别管理系统</text>
+      <text class="page-subtitle">功能面板</text>
+    </view>
+
+    <!-- 外层网格容器 - 控制整体布局 -->
+    <view class="function-grid">
+      <!-- 识别功能分区 -->
+      <view class="function-section">
+        <view class="section-header">
+          <text class="section-icon">📷</text>
+          <text class="section-title">识别功能</text>
+        </view>
+        <!-- 功能项网格 - 固定2列 -->
+        <view class="item-grid">
+          <view class="function-item" @click="navigateTo('RealTimeRecognition')">
+            <view class="item-icon">🎥</view>
+            <text class="item-text">实时识别</text>
+          </view>
+          <view class="function-item" @click="navigateTo('ImageRecognition')">
+            <view class="item-icon">🖼️</view>
+            <text class="item-text">图片识别</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 记录管理分区 -->
+      <view class="function-section">
+        <view class="section-header">
+          <text class="section-icon">📝</text>
+          <text class="section-title">记录管理</text>
+        </view>
+        <!-- 功能项网格 - 固定2列 -->
+        <view class="item-grid">
+          <view class="function-item" @click="navigateTo('ImageRecognitionRecord')">
+            <view class="item-icon">📸</view>
+            <text class="item-text">图片识别记录</text>
+          </view>
+          <view class="function-item" @click="navigateTo('RealTimeRecognitionRecord')">
+            <view class="item-icon">📹</view>
+            <text class="item-text">实时识别记录</text>
+          </view>
+        </view>
+      </view>
+<!-- 	  <view style="padding: 20rpx;background:#fff;margin:20rpx;border-radius:16rpx;">
+	    <text style="font-size:24rpx;color:red;">调试信息👇</text>
+	    <view>是否登录：{{ isLogin() }}</view>
+	    <view>角色：{{ getUserRole() }}</view>
+	    <view>用户名：{{ getUserInfo()?.username }}</view>
+	    <view>完整信息：{{ getUserInfo() }}</view>
+	  </view> -->
+
+      <view class="function-section" v-if="getUserRole() === 'admin'">
+        <view class="section-header">
+          <text class="section-icon">👥</text>
+          <text class="section-title">用户管理</text>
+        </view>
+        <!-- 功能项网格 - 固定2列 -->
+        <view class="item-grid">
+          <view class="function-item" @click="navigateTo('UserList')">
+            <view class="item-icon">👤</view>
+            <text class="item-text">用户列表</text>
+          </view>
+          <view class="function-item" @click="showUnimplementedTip">
+            <view class="item-icon">🔜</view>
+            <text class="item-text">敬请期待</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+// 仅导入原有工具类，不做任何修改
+import { getUserInfo, getUserRole, isLogin } from '@/utils/userInfo.uts'
+// 导入原有 UserInfo 类型（确保类型匹配）
+import type { UserInfo } from '@/utils/userInfo.uts'
+
+
+
+// 页面路由配置（保持不变）
+const pageConfig = {
+  RealTimeRecognition: {
+    url: '/pages/CameraPredict/index',
+    isTabBar: true
+  },
+  ImageRecognition: {
+    url: '/pages/ImgPredict/ImgPredict',
+    isTabBar: false
+  },
+  ImageRecognitionRecord: {
+    url: '/pages/imgRecords/imgRecords',
+    isTabBar: false
+  },
+  RealTimeRecognitionRecord: {
+    url: '/pages/CameraRecords/CameraRecords',
+    isTabBar: false
+  },
+  UserList: {
+    url: '/pages/UserList/UserList',
+    isTabBar: false
+  }
+}
+
+const navigateTo = (page: string) => {
+
+  const pageInfo = pageConfig[page as keyof typeof pageConfig]
+  
+  if (!pageInfo) {
+    uni.showToast({
+      title: `页面 ${page} 不存在`,
+      icon: 'none'
+    })
+    return
+  }
+
+  if (pageInfo.isTabBar) {
+    uni.switchTab({
+      url: pageInfo.url,
+      fail: (err) => {
+        console.error('tabBar页面跳转失败:', err)
+        uni.showToast({
+          title: '页面跳转失败',
+          icon: 'none'
+        })
+      }
+    })
+  } else {
+    uni.navigateTo({
+      url: pageInfo.url,
+      fail: (err) => {
+        console.error('普通页面跳转失败:', err)
+        uni.showToast({
+          title: '页面跳转失败',
+          icon: 'none'
+        })
+      }
+    })
+  }
+}
+
+// 未实现功能提示（保持不变）
+const showUnimplementedTip = () => {
+  uni.showToast({
+    title: '功能暂未实现',
+    icon: 'none',
+    duration: 1500
+  })
+}
+
+// 页面加载时刷新用户信息（确保最新状态）
+onMounted(() => {
+  // 重新获取用户信息，更新状态
+  userInfo.value = getUserInfo()
+})
+</script>
+
+<style scoped>
+.functions {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  background-image: url('https://free.picui.cn/free/2026/03/08/69ad28f585a3f.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  padding: 20rpx;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* 页面头部 - 保持原有样式 */
+.page-header {
+  background: linear-gradient(120deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20rpx;
+  padding: 40rpx 20rpx;
+  margin-bottom: 30rpx;
+  text-align: center;
+  box-shadow: 0 10rpx 30rpx rgba(102, 126, 234, 0.2);
+  position: relative;
+  overflow: hidden;
+  opacity: 0.9;
+}
+
+.page-header::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.1) 0%, transparent 60%);
+}
+
+.page-title {
+  display: block;
+  font-size: 46rpx;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 10rpx;
+  text-shadow: 0 2rpx 8rpx rgba(0,0,0,0.15);
+  position: relative;
+  z-index: 1;
+  opacity: 0.95;
+}
+
+.page-subtitle {
+  display: block;
+  font-size: 28rpx;
+  color: rgba(255,255,255,0.9);
+  position: relative;
+  z-index: 1;
+  opacity: 0.9;
+}
+
+/* 外层功能分区网格 - 保持原有样式 */
+.function-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 25rpx;
+}
+
+/* 功能分区卡片 - 保持原有样式 */
+.function-section {
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 20rpx;
+  padding: 30rpx;
+  box-shadow: 0 6rpx 20rpx rgba(0,0,0,0.05);
+  transition: transform 0.2s ease;
+  opacity: 0.9;
+  backdrop-filter: blur(10rpx);
+}
+
+.function-section:hover {
+  transform: translateY(-2rpx);
+  opacity: 0.95;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 25rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 2rpx solid #f8f9fa;
+  opacity: 0.95;
+}
+
+.section-icon {
+  font-size: 38rpx;
+  margin-right: 15rpx;
+  display: flex;
+  align-items: center;
+  opacity: 0.9;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #2d3748;
+  letter-spacing: 0.5rpx;
+  opacity: 0.95;
+}
+
+/* 功能项网格 - 保持原有样式 */
+.item-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20rpx;
+}
+
+/* 功能项 - 保持原有样式 */
+.function-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 45rpx 20rpx;
+  background: linear-gradient(135deg, rgba(245, 247, 255, 0.9) 0%, rgba(238, 242, 255, 0.9) 100%);
+  border-radius: 16rpx;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4rpx 15rpx rgba(102, 126, 234, 0.08);
+  border: 1rpx solid rgba(255,255,255,0.8);
+  opacity: 0.95;
+}
+
+.function-item:hover {
+  box-shadow: 0 8rpx 20rpx rgba(102, 126, 234, 0.12);
+  opacity: 1;
+}
+
+.function-item:active {
+  transform: scale(0.96);
+  background: linear-gradient(135deg, rgba(232, 240, 255, 0.95) 0%, rgba(219, 231, 255, 0.95) 100%);
+  box-shadow: 0 2rpx 10rpx rgba(102, 126, 234, 0.1);
+  opacity: 0.98;
+}
+
+.item-icon {
+  font-size: 56rpx;
+  margin-bottom: 20rpx;
+  transition: transform 0.3s ease;
+  opacity: 0.95;
+}
+
+.function-item:hover .item-icon {
+  transform: scale(1.1);
+  opacity: 1;
+}
+
+.item-text {
+  font-size: 28rpx;
+  color: #2d3748;
+  font-weight: 500;
+  text-align: center;
+  letter-spacing: 0.3rpx;
+  opacity: 0.95;
+}
+
+/* 补位空项样式 - 保持原有样式 */
+.function-item.placeholder {
+  background: rgba(248, 249, 250, 0.85);
+  color: #94a3b8;
+  cursor: default;
+  opacity: 0.8;
+}
+
+.function-item.placeholder:active {
+  background: rgba(233, 236, 239, 0.85);
+  transform: none;
+  opacity: 0.8;
+}
+
+.placeholder .item-text {
+  color: #94a3b8;
+  opacity: 0.85;
+}
+</style>

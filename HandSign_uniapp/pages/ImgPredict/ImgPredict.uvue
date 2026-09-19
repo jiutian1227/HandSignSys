@@ -1,0 +1,508 @@
+<template>
+  <view class="container">
+    <view class="header">
+      <text class="title">手语在线图片识别</text>
+    </view>
+
+    <view class="main">
+      <view class="config-card">
+        <text class="card-title">模型配置</text>
+        
+        <view class="config-item">
+          <text class="label">选择检测模型</text>
+          <picker mode="selector" :range="weight_items" range-key="label" @change="onModelChange" class="picker">
+            <view class="picker-text">{{ currentModelLabel || '请选择模型' }}</view>
+          </picker>
+        </view>
+        
+        <view class="config-item">
+          <text class="label">置信度阈值</text>
+          <view class="conf-wrap">
+            <button class="conf-btn" @click="setConf(-5)" :disabled="conf <= 10">-</button>
+            <text class="conf-value">{{ (conf / 100).toFixed(2) }}</text>
+            <button class="conf-btn" @click="setConf(5)" :disabled="conf >= 100">+</button>
+          </view>
+        </view>
+        
+        <view class="btn-group">
+          <button style="padding: 20rpx;" class="detect-btn" @click="startDetect" :disabled="loading || !weight || !serverImageUrl">
+            <text class="btn-text">{{ loading ? '检测中...' : '开始检测' }}</text>
+          </button>
+          <button style="padding: 20rpx;" class="reset-btn" @click="resetForm">
+            <text class="btn-text">重置</text>
+          </button>
+        </view>
+      </view>
+
+      <view class="upload-card">
+        <text class="card-title">图片上传</text>
+        <view class="upload-area" @click="chooseAndUploadImage">
+          <image v-if="imageUrl" :src="imageUrl" class="preview-img" mode="aspectFill"></image>
+          <view v-else class="upload-placeholder">
+            <text class="upload-text">点击选择并上传图片</text>
+            <text class="upload-tip">支持 JPG、PNG 格式，大小不超过 10MB</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="result-card" v-if="result.label">
+        <text class="card-title">检测结果</text>
+        <view class="result-list">
+          <view class="result-item">
+            <text class="result-text">诊断结果：<text class="highlight">{{ formatLabel(result.label) }}</text></text>
+          </view>
+          <view class="result-item">
+            <text class="result-text">置信度：<text class="accent">{{ formatConfidence(result.confidence) }}</text></text>
+          </view>
+          <view class="result-item">
+            <text class="result-text">分析用时：<text>{{ result.allTime }}</text></text>
+          </view>
+          <view class="result-item" v-if="detectTime">
+            <text class="result-text">检测时间：<text class="accent">{{ detectTime }}</text></text>
+          </view>
+        </view>
+        
+        <view class="result-img-wrap" v-if="result.outImg">
+          <text class="img-title">输出图片</text>
+          <image :src="result.outImg" class="result-img" mode="widthFix"></image>
+        </view>
+      </view>
+    </view>
+
+    <view class="status-bar">
+      <text class="status-text">{{ tip }}</text>
+    </view>
+  </view>
+</template>
+
+<script setup lang="uts">
+import { ref, reactive, onMounted } from 'vue';
+import { predict, getFileNames } from '@/api/flask.uts';
+import { uploadImage } from '@/api/file.uts';
+import { getUserInfo } from '@/utils/userInfo.uts';
+
+const DEFAULT_CONFIG = {
+  STATUS_TYPE: {
+    SUCCESS: 'success',
+    ERROR: 'error',
+    WARNING: 'warning',
+    INFO: 'info'
+  },
+  DEFAULT_MODEL: { label: '默认模型', value: 'default.pt' },
+  STEP: 5,
+  MIN_CONF: 10,
+  MAX_CONF: 100,
+  DEFAULT_CONF: 60
+};
+
+const weight_items = ref<Array<{ label: string; value: string }>>([]);
+const weight = ref<string>('');
+const currentModelLabel = ref<string>('请选择模型');
+const conf = ref<number>(60);
+const imageUrl = ref<string>('');
+const serverImageUrl = ref<string>('');
+const loading = ref<boolean>(false);
+const tip = ref<string>('就绪');
+const detectTime = ref<string>('');
+
+const result = reactive({
+  label: '',
+  confidence: '',
+  allTime: '',
+  outImg: ''
+});
+
+const formatDateTime = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
+
+const formatLabel = (str: string): string => {
+  try {
+    if (str.startsWith('["') && str.endsWith('"]')) {
+      return str.slice(2, -2);
+    }
+    return str;
+  } catch {
+    return str;
+  }
+};
+
+const formatConfidence = (str: string): string => {
+  try {
+    if (str.startsWith('["') && str.endsWith('"]')) {
+      return str.slice(2, -2);
+    }
+    return str;
+  } catch {
+    return str;
+  }
+};
+
+onMounted(async () => {
+  tip.value = '正在加载模型列表...';
+  try {
+    const res = await getFileNames() as { code: string | number; data: string; msg?: string };
+    if (res.code === '200' || res.code === 200) {
+      const data = JSON.parse(res.data) as { weight_items: Array<{ label: string; value: string }> };
+      weight_items.value = data.weight_items || [];
+      tip.value = `模型加载完成（共${weight_items.value.length}个）`;
+    } else {
+      tip.value = `模型加载失败：${res.msg || '接口返回错误'}`;
+    }
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : '网络错误';
+    tip.value = `加载异常：${errorMsg}`;
+  }
+});
+
+const onModelChange = (e: { detail: { value: number } }) => {
+  const index = e.detail.value;
+  const selectedItem = weight_items.value[index];
+  if (selectedItem) {
+    weight.value = selectedItem.value;
+    currentModelLabel.value = selectedItem.label;
+    tip.value = `已选择模型：${selectedItem.label}`;
+  }
+};
+
+const setConf = (dir: number): void => {
+  let newConf = conf.value + dir;
+  newConf = Math.max(10, Math.min(100, newConf));
+  conf.value = newConf;
+  tip.value = `置信度已调整为：${(newConf/100).toFixed(2)}`;
+};
+
+const chooseAndUploadImage = async () => {
+  uni.chooseImage({
+    count: 1,
+    sizeType: ['compressed'],
+    sourceType: ['album', 'camera'],
+    success: async (res) => {
+      const tempFilePath = res.tempFilePaths[0];
+      imageUrl.value = tempFilePath;
+      tip.value = '正在上传图片到服务器...';
+
+      try {
+        const uploadRes = await uploadImage(tempFilePath) as { code: string | number; data: string; msg?: string };
+        if (uploadRes.code === '200' || uploadRes.code === 200) {
+          serverImageUrl.value = uploadRes.data;
+          tip.value = '图片上传成功！';
+        } else {
+          tip.value = `图片上传失败：${uploadRes.msg || '上传失败'}`;
+          imageUrl.value = '';
+        }
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : '上传异常';
+        tip.value = `上传异常：${errorMsg}`;
+        imageUrl.value = '';
+      }
+    },
+    fail: () => {
+      tip.value = '图片选择失败';
+    }
+  });
+};
+
+const startDetect = async () => {
+  if (!weight.value) {
+    tip.value = '请先选择检测模型';
+    return;
+  }
+  if (!serverImageUrl.value) {
+    tip.value = '请先上传图片';
+    return;
+  }
+
+  loading.value = true;
+  tip.value = '检测中，请稍候...';
+
+  try {
+    const now = new Date();
+    const formattedTime = formatDateTime(now);
+    detectTime.value = formattedTime;
+
+    const params = {
+      startTime: formattedTime,
+      weight: weight.value,
+      username: getUserInfo()?.username || '',
+      inputImg: serverImageUrl.value,
+      conf: (conf.value / 100).toFixed(2),
+    };
+
+    const res = await predict(params) as { code: string | number; data: string; msg?: string };
+    if (res.code === '200' || res.code === 200) {
+      const data = JSON.parse(res.data);
+      result.label = data?.label || '';
+      result.confidence = data?.confidence || '';
+      result.allTime = data?.allTime || '';
+      result.outImg = data?.outImg || '';
+      tip.value = '检测完成！';
+    } else {
+      tip.value = `检测失败：${res.msg || '后端返回错误'}`;
+    }
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : '网络请求失败';
+    tip.value = `检测异常：${errorMsg}`;
+  } finally {
+    loading.value = false;
+  }
+};
+
+const resetForm = () => {
+  imageUrl.value = '';
+  serverImageUrl.value = '';
+  conf.value = 60;
+  result.label = '';
+  result.confidence = '';
+  result.allTime = '';
+  result.outImg = '';
+  detectTime.value = '';
+  tip.value = '表单已重置，请重新选择模型和图片';
+};
+</script>
+
+<style scoped>
+.container {
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4eaf5 100%);
+  padding-bottom: 60rpx;
+}
+
+.header {
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  padding: 30rpx 20rpx;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.title {
+  font-size: 36rpx;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.main {
+  padding: 30rpx 20rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 30rpx;
+}
+
+.config-card, .upload-card, .result-card {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.card-title {
+  font-size: 32rpx;
+  color: #2c3e50;
+  font-weight: 600;
+  margin-bottom: 25rpx;
+  padding-bottom: 15rpx;
+  border-bottom: 1px solid #f0f2f5;
+  display: block;
+}
+
+.config-item {
+  margin-bottom: 30rpx;
+}
+
+.label {
+  font-size: 28rpx;
+  color: #5a6c7d;
+  font-weight: 500;
+  margin-bottom: 15rpx;
+  display: block;
+}
+
+.picker {
+  width: 100%;
+  height: 80rpx;
+  border: 1px solid #e5e6eb;
+  border-radius: 10rpx;
+  padding: 0 20rpx;
+  display: flex;
+  align-items: center;
+  background: #f8f9fa;
+}
+
+.picker-text {
+  font-size: 28rpx;
+  color: #2c3e50;
+}
+
+.conf-wrap {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.conf-value {
+  font-size: 32rpx;
+  color: #667eea;
+  font-weight: 600;
+  min-width: 100rpx;
+  text-align: center;
+}
+
+.conf-btn {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 8rpx;
+  background: #f0f2f5;
+  color: #2c3e50;
+  font-size: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+}
+
+.conf-btn:disabled {
+  background: #e5e6eb;
+  color: #909399;
+}
+
+.btn-group {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 10rpx;
+}
+
+.detect-btn {
+  flex: 2;
+  height: 88rpx;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 10rpx;
+  border: none;
+}
+
+.reset-btn {
+  flex: 1;
+  height: 88rpx;
+  background: #f0f2f5;
+  color: #5a6c7d;
+  border-radius: 10rpx;
+  border: none;
+}
+
+.btn-text {
+  font-size: 30rpx;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.reset-btn .btn-text {
+  color: #5a6c7d;
+}
+
+.upload-area {
+  width: 100%;
+  height: 400rpx;
+  border: 2px dashed #c0c4cc;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fa;
+}
+
+.preview-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 14rpx;
+}
+
+.upload-placeholder {
+  text-align: center;
+  padding: 20rpx;
+}
+
+.upload-text {
+  font-size: 28rpx;
+  color: #5a6c7d;
+  margin-bottom: 10rpx;
+  display: block;
+}
+
+.upload-tip {
+  font-size: 24rpx;
+  color: #909399;
+  display: block;
+}
+
+.result-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  margin-bottom: 30rpx;
+}
+
+.result-item {
+  padding: 20rpx;
+  background: #f8f9fa;
+  border-radius: 10rpx;
+}
+
+.result-text {
+  font-size: 30rpx;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.highlight {
+  color: #43e97b;
+  font-weight: 600;
+}
+
+.accent {
+  color: #fa709a;
+  font-weight: 600;
+}
+
+.result-img-wrap {
+  margin-top: 20rpx;
+}
+
+.img-title {
+  font-size: 28rpx;
+  color: #5a6c7d;
+  font-weight: 500;
+  margin-bottom: 15rpx;
+  display: block;
+}
+
+.result-img {
+  width: 100%;
+  border-radius: 10rpx;
+}
+
+.status-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60rpx;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10rpx);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.status-text {
+  font-size: 26rpx;
+  color: #5a6c7d;
+}
+</style>

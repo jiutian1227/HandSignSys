@@ -1,0 +1,104 @@
+
+import { get, post, del } from "@/common/request.uts";
+
+/**
+ * 摄像头记录类型（完全匹配后端CameraRecords实体字段）
+ */
+export interface CameraRecords {
+  id?: number;               // 主键ID（自增）
+  weight?: string;           // 重量
+  outVideo?: string;         // 输出视频
+  conf?: string;             // 置信度
+  username?: string;         // 用户名
+  startTime?: string;        // 开始时间
+}
+
+/**
+ * 获取摄像头记录列表（支持角色权限控制）
+ * @param role 角色：admin / user（必填）
+ * @param username 用户名（user角色时必填）
+ */
+export const getCameraRecordsAll = async (
+  role: "admin" | "user",
+  username?: string
+) => {
+  if (role === "user" && !username) {
+    uni.showToast({ title: "普通用户查询需传入用户名", icon: "none" });
+    throw new Error("普通用户查询需传入用户名");
+  }
+
+  const params: Record<string, string> = { role };
+  if (username) params.username = username;
+  const result = await get<CameraRecords[]>("/cameraRecords/all", params);
+  return (result as { data: CameraRecords[] }).data;
+};
+
+/**
+ * 根据ID获取单条摄像头记录
+ * @param id 记录ID
+ */
+export const getCameraRecordById = async (id: number) => {
+  const result = await get<CameraRecords>(`/cameraRecords/${id}`);
+  return (result as { data: CameraRecords }).data;
+};
+
+/**
+ * 分页查询摄像头记录
+ * @param pageNum 页码（默认1）
+ * @param pageSize 页大小（默认10）
+ * @param searchParams 搜索参数（username/startTime/weight/conf）
+ */
+export const getCameraRecordsPage = async (
+  pageNum: number = 1,
+  pageSize: number = 10,
+  searchParams: {
+    search?: string;  // username模糊查询
+    search1?: string; // startTime模糊查询
+    search2?: string; // weight模糊查询
+    search3?: string; // conf模糊查询
+  } = {}
+) => {
+  const params = {
+    pageNum,
+    pageSize,
+    ...searchParams
+  };
+  const result = await get<{
+    records: CameraRecords[];
+    total: number;
+    size: number;
+    current: number;
+  }>("/cameraRecords", params);
+  return (result as { data: any }).data;
+};
+
+/**
+ * 删除摄像头记录
+ * @param id 记录ID
+ */
+export const deleteCameraRecord = async (id: number) => {
+  const result = await del<null>(`/cameraRecords/${id}`);
+  return (result as { data: null }).data;
+};
+
+/**
+ * 修改摄像头记录
+ * @param record 要修改的记录（必须包含id）
+ */
+export const updateCameraRecord = async (record: CameraRecords) => {
+  if (!record.id) {
+    uni.showToast({ title: "修改记录必须包含ID", icon: "none" });
+    throw new Error("修改记录必须包含ID");
+  }
+  const result = await post<CameraRecords>("/cameraRecords/update", record);
+  return (result as { data: CameraRecords }).data;
+};
+
+/**
+ * 新增摄像头记录
+ * @param record 要新增的记录
+ */
+export const addCameraRecord = async (record: CameraRecords) => {
+  const result = await post<CameraRecords>("/cameraRecords", record);
+  return (result as { data: CameraRecords }).data;
+};

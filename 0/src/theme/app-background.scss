@@ -1,0 +1,27 @@
+/* 全站统一背景：AI 手语科技图 + 柔和遮罩（与登录/顶栏配色一致） */
+:root {
+	--app-bg-image: url('../assets/sign-language-recognition-bg-tech-ring.png');
+	--app-bg-overlay: linear-gradient(
+		135deg,
+		rgba(15, 23, 42, 0.55) 0%,
+		rgba(30, 58, 95, 0.4) 45%,
+		rgba(45, 212, 191, 0.12) 100%
+	);
+	/* 登录 / 顶栏玻璃与强调色 */
+	--app-accent-cyan: #5eead4;
+	--app-accent-lake: #38bdf8;
+	--app-glass-surface: rgba(15, 23, 42, 0.55);
+	--app-glass-border: rgba(129, 230, 217, 0.22);
+	--app-card-glass: rgba(255, 255, 255, 0.88);
+	--app-text-on-glass: rgba(241, 245, 249, 0.95);
+	--app-text-muted: rgba(203, 213, 225, 0.75);
+}
+
+@mixin app-unified-background {
+	background-color: #0f172a;
+	background-image: var(--app-bg-overlay), var(--app-bg-image);
+	background-repeat: no-repeat, no-repeat;
+	background-size: cover, cover;
+	background-position: center, center;
+	background-attachment: fixed, fixed;
+}

@@ -1,0 +1,73 @@
+// common/aiRecognitionApi.uts
+// const BASE_URL = 'http://47.108.20.251:5000';
+const BASE_URL = 'https://flask.fanzengxie.icu';
+
+// 格式化日期时间
+export const formatDateTime = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
+
+// 获取模型列表
+export const getModelList = () => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${BASE_URL}/file_names`,
+      method: 'GET',
+      timeout: 10000,
+      success: (res: any) => resolve(res.data),
+      fail: (err) => reject(err)
+    });
+  });
+};
+
+// ====================== 【小程序核心接口】实时帧识别 ======================
+export const predictFrame = (data: {
+  weight: string;
+  conf: number;
+  frame: string;        // base64
+  sessionId?: string;
+  recordSessionId?: string;
+}) => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${BASE_URL}/predictFrame`,
+      method: 'POST',
+      data: data,
+      timeout: 800,
+      success: (res: any) => resolve(res.data),
+      fail: (err) => reject(err)
+    });
+  });
+};
+
+// ====================== 结束录制并保存视频 ======================
+export const finalizeCameraSession = (data: {
+  sessionId: string;
+  username: string;
+  weight: string;
+  conf: number;
+  startTime: string;
+}) => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${BASE_URL}/finalizeCameraSession`,
+      method: 'POST',
+      data: data,
+      timeout: 30000,
+      success: (res: any) => resolve(res.data),
+      fail: (err) => reject(err)
+    });
+  });
+};
+
+// ====================== 停止摄像头（废弃不用） ======================
+export const stopCameraRecognition = () => {
+  return Promise.resolve({ code: 0 });
+};

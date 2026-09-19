@@ -1,4 +1,4 @@
-根据你这份《设计和开发文档》，帮你写了一份可以直接放到 GitHub 的 README.md：
+完整的设计和开发文档见 `docs/设计和开发文档.docs`。
 
 ```markdown
 # HandSignSys 智能手语识别系统

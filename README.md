@@ -1,6 +1,5 @@
 完整的设计和开发文档见 `docs/设计和开发文档.docs`。
 
-```markdown
 # HandSignSys 智能手语识别系统
 
 基于 YOLOv8 + SpringBoot + Flask + Vue3 + UniApp 的智能手语识别系统，支持图片识别、视频识别、摄像头实时识别，覆盖 PC 端和微信小程序双端，面向聋哑人士、健听人士及教育工作者提供无障碍沟通解决方案。
@@ -48,13 +47,12 @@
 
 ## 项目结构
 
-```
 HandSignSys/
 ├── HandSign_flask/        # Flask AI推理后端
 ├── HandSign_springboot/   # SpringBoot 业务后端
 ├── HandSign_uniapp/       # UniApp 微信小程序
 └── HandSign_vue/          # Vue3 PC 端
-```
+
 
 ## 系统启动顺序
 
